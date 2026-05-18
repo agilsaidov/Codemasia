@@ -1,14 +1,13 @@
 package com.agilsaidov.codemasia.user.controller;
 
 import com.agilsaidov.codemasia.user.dto.response.UserResponse;
+import com.agilsaidov.codemasia.user.model.Role;
 import com.agilsaidov.codemasia.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
 
 @RestController
 @RequestMapping("/api/users")
@@ -23,10 +22,18 @@ public class UserController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<UserResponse>> getUsers(@RequestParam(defaultValue = "0") int page,
+    public ResponseEntity<Page<UserResponse>> getUsers(@RequestParam(required = false) Role role,
+                                                       @RequestParam(defaultValue = "0") int page,
                                                        @RequestParam(defaultValue = "10") int size) {
 
-        return ResponseEntity.ok().body(userService.getUsers(page, size));
+        return ResponseEntity.ok().body(userService.getUsers(role, page, size));
     }
+
+    @GetMapping("/me")
+    public ResponseEntity<UserResponse> getCurrentUser(@RequestHeader("X-User-Id") String keycloakId) {
+        return ResponseEntity.ok(userService.getCurrentUser(keycloakId));
+    }
+
+    
 
 }
