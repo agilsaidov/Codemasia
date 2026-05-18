@@ -16,4 +16,8 @@ spring:
   flyway:
     mixed: true
 
-
+keycloak:
+  server-url: http://localhost:8090
+  realm: codemasia
+  client-id: codemasia-backend
+  client-secret: ${KEYCLOAK_BACKEND_CLIENT_SECRET}

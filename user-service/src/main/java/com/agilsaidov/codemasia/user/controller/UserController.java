@@ -1,8 +1,11 @@
 package com.agilsaidov.codemasia.user.controller;
 
+import com.agilsaidov.codemasia.user.dto.request.ChangePasswordRequest;
+import com.agilsaidov.codemasia.user.dto.request.UpdateUserRequest;
 import com.agilsaidov.codemasia.user.dto.response.UserResponse;
 import com.agilsaidov.codemasia.user.model.Role;
 import com.agilsaidov.codemasia.user.service.UserService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -34,6 +37,20 @@ public class UserController {
         return ResponseEntity.ok(userService.getCurrentUser(keycloakId));
     }
 
-    
+    @PutMapping("/{id}")
+    public ResponseEntity<UserResponse> updateUser(@PathVariable(name = "id") Long userId,
+                                                   @RequestHeader("X-User-Id") String keycloakId,
+                                                   @Valid @RequestBody UpdateUserRequest request){
+        return ResponseEntity.ok(userService.updateUser(userId, keycloakId, request));
+    }
+
+
+    @PatchMapping("/{id}/change-password")
+    public ResponseEntity<Void> changePassword(@PathVariable(name = "id") Long userId,
+                                               @RequestHeader("X-User-Id") String keycloakId,
+                                               @Valid @RequestBody ChangePasswordRequest request){
+        userService.changePassword(userId, keycloakId, request);
+        return ResponseEntity.ok().build();
+    }
 
 }

@@ -25,11 +25,14 @@ public class SecurityConfig {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .addFilterBefore(headerAuthFilter, UsernamePasswordAuthenticationFilter.class)
-                .authorizeHttpRequests(
-                        request -> request
-                                .requestMatchers(HttpMethod.GET,"/api/users").hasRole("ADMIN")
-                                .requestMatchers("/api/users/health").permitAll()
-                                .anyRequest().authenticated()
+                .authorizeHttpRequests(request -> request
+/*                        .requestMatchers("/api/users/health").permitAll()
+                        .requestMatchers("/api/users/me").hasAnyRole("ADMIN", "TEACHER", "STUDENT")
+                        .requestMatchers(HttpMethod.GET, "/api/users").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/users").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/users/{id}").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/users/{id}/change-password").hasRole("ADMIN")*/
+                        .anyRequest().authenticated()
                 );
 
         return http.build();
