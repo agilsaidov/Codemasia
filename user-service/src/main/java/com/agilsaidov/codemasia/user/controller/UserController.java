@@ -1,6 +1,7 @@
 package com.agilsaidov.codemasia.user.controller;
 
 import com.agilsaidov.codemasia.user.dto.request.ChangePasswordRequest;
+import com.agilsaidov.codemasia.user.dto.request.CreateUserRequest;
 import com.agilsaidov.codemasia.user.dto.request.UpdateUserRequest;
 import com.agilsaidov.codemasia.user.dto.response.UserResponse;
 import com.agilsaidov.codemasia.user.model.Role;
@@ -22,6 +23,11 @@ public class UserController {
     @GetMapping("/health")
     public String health() {
         return "OK";
+    }
+
+    @PostMapping
+    public ResponseEntity<UserResponse> createUser(@RequestBody @Valid CreateUserRequest request){
+        return ResponseEntity.ok().body(userService.createUser(request));
     }
 
     @GetMapping
@@ -50,6 +56,13 @@ public class UserController {
                                                @RequestHeader("X-User-Id") String keycloakId,
                                                @Valid @RequestBody ChangePasswordRequest request){
         userService.changePassword(userId, keycloakId, request);
+        return ResponseEntity.ok().build();
+    }
+
+    @PatchMapping("/{id}/enable")
+    public ResponseEntity<Void> enableUser(@PathVariable(name = "id") Long userId,
+                                           @RequestParam boolean enabled) {
+        userService.enableUser(userId, enabled);
         return ResponseEntity.ok().build();
     }
 
