@@ -1,6 +1,8 @@
 package com.agilsaidov.codemasia.user.controller;
 
+import com.agilsaidov.codemasia.user.dto.request.ChangeEmailRequest;
 import com.agilsaidov.codemasia.user.dto.request.ChangePasswordRequest;
+import com.agilsaidov.codemasia.user.dto.request.ChangeRoleRequest;
 import com.agilsaidov.codemasia.user.dto.request.CreateUserRequest;
 import com.agilsaidov.codemasia.user.dto.request.UpdateUserRequest;
 import com.agilsaidov.codemasia.user.dto.response.UserResponse;
@@ -9,6 +11,7 @@ import com.agilsaidov.codemasia.user.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,7 +30,7 @@ public class UserController {
 
     @PostMapping
     public ResponseEntity<UserResponse> createUser(@RequestBody @Valid CreateUserRequest request){
-        return ResponseEntity.ok().body(userService.createUser(request));
+        return ResponseEntity.status(HttpStatus.CREATED).body(userService.createUser(request));
     }
 
     @GetMapping
@@ -35,7 +38,12 @@ public class UserController {
                                                        @RequestParam(defaultValue = "0") int page,
                                                        @RequestParam(defaultValue = "10") int size) {
 
-        return ResponseEntity.ok().body(userService.getUsers(role, page, size));
+        return ResponseEntity.ok(userService.getUsers(role, page, size));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<UserResponse> getUser(@PathVariable("id") Long userId){
+        return ResponseEntity.ok(userService.getUserById(userId));
     }
 
     @GetMapping("/me")
@@ -59,10 +67,24 @@ public class UserController {
         return ResponseEntity.ok().build();
     }
 
+    @PatchMapping("/{id}/change-email")
+    public ResponseEntity<UserResponse> changeEmail(@PathVariable(name = "id") Long userId,
+                                                    @RequestHeader("X-User-Id") String keycloakId,
+                                                    @Valid @RequestBody ChangeEmailRequest request) {
+        return ResponseEntity.ok(userService.changeEmail(userId, keycloakId, request));
+    }
+
+    @PatchMapping("/{id}/change-role")
+    public ResponseEntity<UserResponse> changeRole(@PathVariable(name = "id") Long userId,
+                                                   @Valid @RequestBody ChangeRoleRequest request) {
+        return ResponseEntity.ok(userService.changeRole(userId, request));
+    }
+
     @PatchMapping("/{id}/enable")
     public ResponseEntity<Void> enableUser(@PathVariable(name = "id") Long userId,
+                                           @RequestHeader("X-User-Id") String keycloakId,
                                            @RequestParam boolean enabled) {
-        userService.enableUser(userId, enabled);
+        userService.enableUser(userId, keycloakId ,enabled);
         return ResponseEntity.ok().build();
     }
 

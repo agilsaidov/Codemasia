@@ -4,6 +4,7 @@ import com.agilsaidov.codemasia.user.dto.request.CreateUserRequest;
 import com.agilsaidov.codemasia.user.dto.request.UpdateUserRequest;
 import com.agilsaidov.codemasia.user.exception.DuplicateException;
 import com.agilsaidov.codemasia.user.model.Role;
+import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 @Service
 @RequiredArgsConstructor
@@ -26,8 +28,9 @@ public class KeycloakAdminService {
     private final UsersResource usersResource;
     private final RealmResource realmResource;
 
+
     public UUID createUser(CreateUserRequest request) {
-        log.info("Creating Keycloak user with username={}", request.getUsername());
+        log.debug("Creating Keycloak user username={}", request.getUsername());
 
         UserRepresentation user = new UserRepresentation();
         user.setUsername(request.getUsername());
@@ -50,48 +53,87 @@ public class KeycloakAdminService {
 
         String locationPath = response.getLocation().getPath();
         String keycloakId = locationPath.substring(locationPath.lastIndexOf('/') + 1);
-        log.info("Keycloak user created successfully keycloakId={}", keycloakId);
+        log.debug("Keycloak user created keycloakId={}", keycloakId);
         return UUID.fromString(keycloakId);
     }
 
+
     public void deleteUser(UUID keycloakId) {
-        log.info("Deleting Keycloak user keycloakId={}", keycloakId);
+        log.debug("Deleting Keycloak user keycloakId={}", keycloakId);
         usersResource.get(keycloakId.toString()).remove();
-        log.info("Keycloak user deleted keycloakId={}", keycloakId);
+        log.debug("Keycloak user deleted keycloakId={}", keycloakId);
     }
 
+
     public void enableUser(UUID keycloakId, Boolean enable) {
-        log.info("Setting enabled={} for keycloakId={}", enable, keycloakId);
+        log.debug("Setting enabled={} for keycloakId={}", enable, keycloakId);
         UserResource userResource = usersResource.get(keycloakId.toString());
         UserRepresentation user = userResource.toRepresentation();
         user.setEnabled(enable);
         userResource.update(user);
-        log.info("User enable status updated keycloakId={}", keycloakId);
+        log.debug("Keycloak enable status updated keycloakId={}", keycloakId);
     }
+
+
+    public void changeEmail(UUID keycloakId, String email) {
+        log.debug("Changing email for keycloakId={}", keycloakId);
+        updateUser(keycloakId, user -> user.setEmail(email));
+        log.debug("Email changed in Keycloak keycloakId={}", keycloakId);
+    }
+
 
     public void changePassword(UUID keycloakId, String password) {
-        log.info("Changing password for keycloakId={}", keycloakId);
+        log.debug("Changing password for keycloakId={}", keycloakId);
         CredentialRepresentation credential = createCredential(password);
         usersResource.get(keycloakId.toString()).resetPassword(credential);
-        log.info("Password changed successfully for keycloakId={}", keycloakId);
+        log.debug("Password changed in Keycloak keycloakId={}", keycloakId);
     }
 
+
     public void assignRole(UUID keycloakId, Role role) {
-        log.info("Assigning role={} to keycloakId={}", role.name(), keycloakId);
+        log.debug("Assigning role={} to keycloakId={}", role.name(), keycloakId);
         try {
-            RoleRepresentation roleRepresentation = realmResource.roles()
-                    .get(role.name())
-                    .toRepresentation();
-            usersResource.get(keycloakId.toString())
+
+            RoleRepresentation newRoleRepresentation = realmResource.roles()
+                    .get(role.name()).toRepresentation();
+
+            var realmRoles = usersResource.get(keycloakId.toString())
                     .roles()
-                    .realmLevel()
-                    .add(List.of(roleRepresentation));
-            log.info("Role={} assigned to keycloakId={}", role.name(), keycloakId);
+                    .realmLevel();
+
+            List<RoleRepresentation> current = realmRoles.listAll();
+
+            current.stream()
+                    .filter(r -> List.of("ADMIN", "TEACHER", "STUDENT").contains(r.getName()))
+                    .forEach(r -> realmRoles.remove(List.of(r)));
+
+            realmRoles.add(List.of(newRoleRepresentation));
+
+            log.debug("Role={} assigned in Keycloak keycloakId={}", role.name(), keycloakId);
         } catch (Exception e) {
             log.error("Failed to assign role={} to keycloakId={}: {}", role.name(), keycloakId, e.getMessage());
             throw e;
         }
     }
+
+
+    private void updateUser(UUID keycloakId, Consumer<UserRepresentation> updater) {
+        UserResource userResource = usersResource.get(keycloakId.toString());
+        UserRepresentation user = userResource.toRepresentation();
+        updater.accept(user);
+        
+        try {
+            userResource.update(user);
+        } catch (WebApplicationException e) {
+            if (e.getResponse().getStatus() == 409) {
+                log.warn("User already exists in Keycloak: keycloakId={}", keycloakId);
+                throw new DuplicateException("USER_ALREADY_EXISTS",
+                        "Username or email already taken by another user");
+            }
+            throw e;
+        }
+    }
+
 
     private CredentialRepresentation createCredential(String password) {
         CredentialRepresentation credential = new CredentialRepresentation();

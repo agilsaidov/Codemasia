@@ -1,6 +1,7 @@
 package com.agilsaidov.codemasia.user.dto.request;
 
 import com.agilsaidov.codemasia.user.model.Role;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -11,6 +12,7 @@ import lombok.Setter;
 public class CreateUserRequest {
 
     @NotBlank(message = "Field email is required")
+    @Email(message = "Field email must be a valid email address")
     private String email;
 
     @NotBlank(message = "Field username is required")

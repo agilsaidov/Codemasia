@@ -5,6 +5,10 @@ spring:
   application:
     name: user-service
 
+  logging:
+    pattern:
+      console: "%d{ISO8601} [%thread] %-5level [${spring.application.name:}] %logger{36} - %msg%n"
+
   autoconfigure:
     exclude: org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
 

@@ -89,4 +89,16 @@ public class GlobalExceptionHandler {
         );
         return ResponseEntity.status(HttpStatus.CONFLICT).body(exceptionResponse);
     }
+
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<ExceptionResponse> handleRuntimeException(RuntimeException e, HttpServletRequest request) {
+        ExceptionResponse exceptionResponse = new ExceptionResponse(
+                OffsetDateTime.now(),
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "RUNTIME_EXCEPTION",
+                "Internal server error",
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(exceptionResponse);
+    }
 }
