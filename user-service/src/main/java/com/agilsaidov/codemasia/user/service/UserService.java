@@ -63,6 +63,15 @@ public class UserService {
     @Transactional
     public UserResponse createUser(CreateUserRequest request) {
         log.info("Creating user username={} role={}", request.getUsername(), request.getRole());
+
+        if(userRepository.existsByEmailOrUsername(request.getEmail(), request.getUsername())) {
+
+            log.warn("User already exists in DB: username={} or email={}", request.getUsername(),  request.getEmail());
+
+            throw new DuplicateException("USER_ALREADY_EXISTS",
+                    "User with this username or email already exists");
+        }
+
         UUID keycloakId = keycloakAdminService.createUser(request);
 
         try {

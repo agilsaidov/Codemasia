@@ -14,6 +14,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.time.OffsetDateTime;
@@ -172,5 +173,26 @@ public class GlobalExceptionHandler {
                 "INTERNAL_SERVER_ERROR",
                 "An unexpected error occurred",
                 request);
+    }
+
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    public ResponseEntity<ExceptionResponse> handleHandlerMethodValidationException(
+            HandlerMethodValidationException e,
+            HttpServletRequest request
+    ){
+        String message = e.getParameterValidationResults().stream()
+                .findFirst()
+                .map(result -> result
+                        .getResolvableErrors()
+                        .getFirst()
+                        .getDefaultMessage())
+                .orElse("Validation failed");
+
+        return response(
+                (HttpStatus) e.getStatusCode(),
+                "PARAMETER_VALIDATION_FAILURE",
+                message,
+                request
+        );
     }
 }

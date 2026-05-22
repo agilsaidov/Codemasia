@@ -9,6 +9,7 @@ import com.agilsaidov.codemasia.user.dto.response.UserResponse;
 import com.agilsaidov.codemasia.user.model.Role;
 import com.agilsaidov.codemasia.user.service.UserService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
@@ -40,8 +41,8 @@ public class UserController {
                                                        @RequestParam(required = false) String username,
                                                        @RequestParam(required = false) String name,
                                                        @RequestParam(required = false) String surname,
-                                                       @RequestParam(defaultValue = "0") int page,
-                                                       @RequestParam(defaultValue = "10") int size) {
+                                                       @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page parameter cannot be negative")int page,
+                                                       @RequestParam(defaultValue = "10") @Min(value = 1, message = "Size parameter must be at least 1") int size) {
 
         return ResponseEntity.ok(userService.getUsers(role, enabled, email, username, name, surname, page, size));
     }
