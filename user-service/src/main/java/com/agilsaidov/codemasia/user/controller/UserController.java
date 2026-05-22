@@ -35,10 +35,15 @@ public class UserController {
 
     @GetMapping
     public ResponseEntity<Page<UserResponse>> getUsers(@RequestParam(required = false) Role role,
+                                                       @RequestParam(required = false) Boolean enabled,
+                                                       @RequestParam(required = false) String email,
+                                                       @RequestParam(required = false) String username,
+                                                       @RequestParam(required = false) String name,
+                                                       @RequestParam(required = false) String surname,
                                                        @RequestParam(defaultValue = "0") int page,
                                                        @RequestParam(defaultValue = "10") int size) {
 
-        return ResponseEntity.ok(userService.getUsers(role, page, size));
+        return ResponseEntity.ok(userService.getUsers(role, enabled, email, username, name, surname, page, size));
     }
 
     @GetMapping("/{id}")

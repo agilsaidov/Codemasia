@@ -33,9 +33,12 @@ public class UserService {
     private final KeycloakAdminService keycloakAdminService;
     private final UserMapper userMapper;
 
-    public Page<UserResponse> getUsers(Role role, int page, int size) {
+    public Page<UserResponse> getUsers(Role role, Boolean enabled,
+                                       String email, String username,
+                                       String name, String surname,
+                                       int page, int size) {
         log.debug("Fetching users with role={} page={} size={}", role, page, size);
-        return userRepository.findAll(UserSpec.withFilters(role), PageRequest.of(page, size))
+        return userRepository.findAll(UserSpec.withFilters(role, enabled, email, username, name, surname), PageRequest.of(page, size))
                 .map(userMapper::toUserResponse);
     }
 
