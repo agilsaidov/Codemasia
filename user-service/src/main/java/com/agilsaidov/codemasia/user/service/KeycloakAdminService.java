@@ -1,7 +1,6 @@
 package com.agilsaidov.codemasia.user.service;
 
 import com.agilsaidov.codemasia.user.dto.request.CreateUserRequest;
-import com.agilsaidov.codemasia.user.dto.request.UpdateUserRequest;
 import com.agilsaidov.codemasia.user.exception.DuplicateException;
 import com.agilsaidov.codemasia.user.model.Role;
 import jakarta.ws.rs.WebApplicationException;
@@ -42,9 +41,9 @@ public class KeycloakAdminService {
         Response response = usersResource.create(user);
 
         if (response.getStatus() == 409) {
-            log.warn("User already exists in Keycloak: username={}", request.getUsername());
+            log.warn("User already exists in Keycloak: username={}, email={}", request.getUsername(), request.getEmail());
             throw new DuplicateException("USER_ALREADY_EXISTS",
-                    "User with this username already exists");
+                    "User with this username or email already exists");
         }
         if (response.getStatus() != 201) {
             log.error("Failed to create Keycloak user: status={}", response.getStatus());
@@ -103,9 +102,13 @@ public class KeycloakAdminService {
 
             List<RoleRepresentation> current = realmRoles.listAll();
 
-            current.stream()
+            List<RoleRepresentation> rolesToRemove = current.stream()
                     .filter(r -> List.of("ADMIN", "TEACHER", "STUDENT").contains(r.getName()))
-                    .forEach(r -> realmRoles.remove(List.of(r)));
+                    .toList();
+
+            if (!rolesToRemove.isEmpty()) {
+                realmRoles.remove(rolesToRemove);
+            }
 
             realmRoles.add(List.of(newRoleRepresentation));
 
