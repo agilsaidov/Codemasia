@@ -1,6 +1,5 @@
 package com.agilsaidov.codemasia.user.exception;
 
-import com.agilsaidov.codemasia.user.dto.response.ExceptionResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.WebApplicationException;
 import lombok.extern.slf4j.Slf4j;

@@ -1,7 +1,7 @@
 package com.agilsaidov.codemasia.user.specification;
 
-import com.agilsaidov.codemasia.user.model.Role;
-import com.agilsaidov.codemasia.user.model.User;
+import com.agilsaidov.codemasia.user.user.model.Role;
+import com.agilsaidov.codemasia.user.user.model.User;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
 

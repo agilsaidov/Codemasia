@@ -1,4 +1,4 @@
-package com.agilsaidov.codemasia.user.model;
+package com.agilsaidov.codemasia.user.user.model;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;

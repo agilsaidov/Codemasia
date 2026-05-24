@@ -1,8 +1,8 @@
-package com.agilsaidov.codemasia.user.service;
+package com.agilsaidov.codemasia.user.user.service;
 
-import com.agilsaidov.codemasia.user.dto.request.CreateUserRequest;
+import com.agilsaidov.codemasia.user.user.dto.request.CreateUserRequest;
 import com.agilsaidov.codemasia.user.exception.DuplicateException;
-import com.agilsaidov.codemasia.user.model.Role;
+import com.agilsaidov.codemasia.user.user.model.Role;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
 import lombok.RequiredArgsConstructor;

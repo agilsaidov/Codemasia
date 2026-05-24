@@ -1,4 +1,4 @@
-package com.agilsaidov.codemasia.user.dto.request;
+package com.agilsaidov.codemasia.user.user.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;

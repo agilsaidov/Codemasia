@@ -1,4 +1,4 @@
-package com.agilsaidov.codemasia.user.dto.response;
+package com.agilsaidov.codemasia.user.exception;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

@@ -1,7 +1,7 @@
 package com.agilsaidov.codemasia.user.mapper;
 
-import com.agilsaidov.codemasia.user.dto.response.UserResponse;
-import com.agilsaidov.codemasia.user.model.User;
+import com.agilsaidov.codemasia.user.user.dto.response.UserResponse;
+import com.agilsaidov.codemasia.user.user.model.User;
 import org.mapstruct.Mapper;
 
 @Mapper(componentModel = "spring")

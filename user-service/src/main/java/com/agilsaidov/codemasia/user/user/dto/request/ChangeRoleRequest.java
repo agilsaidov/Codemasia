@@ -1,6 +1,6 @@
-package com.agilsaidov.codemasia.user.dto.request;
+package com.agilsaidov.codemasia.user.user.dto.request;
 
-import com.agilsaidov.codemasia.user.model.Role;
+import com.agilsaidov.codemasia.user.user.model.Role;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;

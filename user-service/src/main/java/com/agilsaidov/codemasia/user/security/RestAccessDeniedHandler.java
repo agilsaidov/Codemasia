@@ -1,6 +1,6 @@
 package com.agilsaidov.codemasia.user.security;
 
-import com.agilsaidov.codemasia.user.dto.response.ExceptionResponse;
+import com.agilsaidov.codemasia.user.exception.ExceptionResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

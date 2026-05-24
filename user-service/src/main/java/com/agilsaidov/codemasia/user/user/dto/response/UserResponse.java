@@ -1,6 +1,6 @@
-package com.agilsaidov.codemasia.user.dto.response;
+package com.agilsaidov.codemasia.user.user.dto.response;
 
-import com.agilsaidov.codemasia.user.model.Role;
+import com.agilsaidov.codemasia.user.user.model.Role;
 import lombok.Getter;
 import lombok.Setter;
 

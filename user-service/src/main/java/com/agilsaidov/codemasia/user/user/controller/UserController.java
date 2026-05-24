@@ -1,13 +1,13 @@
-package com.agilsaidov.codemasia.user.controller;
+package com.agilsaidov.codemasia.user.user.controller;
 
-import com.agilsaidov.codemasia.user.dto.request.ChangeEmailRequest;
-import com.agilsaidov.codemasia.user.dto.request.ChangePasswordRequest;
-import com.agilsaidov.codemasia.user.dto.request.ChangeRoleRequest;
-import com.agilsaidov.codemasia.user.dto.request.CreateUserRequest;
-import com.agilsaidov.codemasia.user.dto.request.UpdateUserRequest;
-import com.agilsaidov.codemasia.user.dto.response.UserResponse;
-import com.agilsaidov.codemasia.user.model.Role;
-import com.agilsaidov.codemasia.user.service.UserService;
+import com.agilsaidov.codemasia.user.user.dto.request.ChangeEmailRequest;
+import com.agilsaidov.codemasia.user.user.dto.request.ChangePasswordRequest;
+import com.agilsaidov.codemasia.user.user.dto.request.ChangeRoleRequest;
+import com.agilsaidov.codemasia.user.user.dto.request.CreateUserRequest;
+import com.agilsaidov.codemasia.user.user.dto.request.UpdateUserRequest;
+import com.agilsaidov.codemasia.user.user.dto.response.UserResponse;
+import com.agilsaidov.codemasia.user.user.model.Role;
+import com.agilsaidov.codemasia.user.user.service.UserService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
