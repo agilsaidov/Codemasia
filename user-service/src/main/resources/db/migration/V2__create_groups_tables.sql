@@ -1,6 +1,6 @@
 CREATE TABLE groups
 (
-    id          BIGSERIAL    PRIMARY KEY,
+    id          VARCHAR(20)    PRIMARY KEY,
     name        VARCHAR(100) NOT NULL UNIQUE,
     description VARCHAR(500),
     created_by  BIGINT       NOT NULL REFERENCES users (id) ON DELETE RESTRICT,
@@ -10,7 +10,7 @@ CREATE TABLE groups
 
 CREATE TABLE group_members
 (
-    group_id  BIGINT      NOT NULL REFERENCES groups (id) ON DELETE CASCADE,
+    group_id  VARCHAR(20)      NOT NULL REFERENCES groups (id) ON DELETE CASCADE,
     user_id   BIGINT      NOT NULL REFERENCES users (id)  ON DELETE CASCADE,
     joined_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (group_id, user_id)
@@ -18,7 +18,7 @@ CREATE TABLE group_members
 
 CREATE TABLE group_assignments
 (
-    group_id    BIGINT      NOT NULL REFERENCES groups (id) ON DELETE CASCADE,
+    group_id    VARCHAR(20)      NOT NULL REFERENCES groups (id) ON DELETE CASCADE,
     teacher_id  BIGINT      NOT NULL REFERENCES users (id)  ON DELETE CASCADE,
     assigned_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (group_id, teacher_id)
