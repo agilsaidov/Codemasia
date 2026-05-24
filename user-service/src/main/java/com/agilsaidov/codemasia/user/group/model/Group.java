@@ -1,0 +1,47 @@
+package com.agilsaidov.codemasia.user.group.model;
+
+import com.agilsaidov.codemasia.user.user.model.User;
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.time.OffsetDateTime;
+
+@Entity
+@AllArgsConstructor @NoArgsConstructor
+@Getter @Setter
+@Table(name = "groups")
+public class Group {
+    @Id
+    @Column(name = "id")
+    private String groupId;
+
+    @Column(name = "name",  nullable = false, unique = true, length = 100)
+    private String name;
+
+    @Column(name = "description", length = 500)
+    private String description;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by", nullable = false)
+    private User createdBy;
+
+    @Column(name = "created_at",  nullable = false)
+    private OffsetDateTime createdAt;
+
+    @Column(name = "updated_at", nullable = false)
+    private OffsetDateTime updatedAt;
+
+    @PrePersist
+    public void onCreate() {
+        createdAt = OffsetDateTime.now();
+        updatedAt = OffsetDateTime.now();
+    }
+
+    @PreUpdate
+    public void onUpdate() {
+        updatedAt = OffsetDateTime.now();
+    }
+}
