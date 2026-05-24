@@ -21,7 +21,6 @@
         <module>api-gateway</module>
         <module>user-service</module>
         <module>exam-service</module>
-        <module>group-service</module>
         <module>submission-service</module>
     </modules>
 

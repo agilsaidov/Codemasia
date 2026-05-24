@@ -84,28 +84,6 @@ services:
       - codemasia-network
 
   # ─────────────────────────────────────────────
-  # GROUP SERVICE DB
-  # ─────────────────────────────────────────────
-  group-db:
-    image: postgres:16
-    container_name: codemasia-group-service-db
-    environment:
-      POSTGRES_DB: ${GROUP_DB_NAME}
-      POSTGRES_USER: ${GROUP_DB_USER}
-      POSTGRES_PASSWORD: ${GROUP_DB_PASSWORD}
-    ports:
-      - "5435:5432"
-    volumes:
-      - group-db-data:/var/lib/postgresql/data
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${GROUP_DB_USER} -d ${GROUP_DB_NAME}" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - codemasia-network
-
-  # ─────────────────────────────────────────────
   # SUBMISSION SERVICE DB
   # ─────────────────────────────────────────────
   submission-db:
@@ -187,7 +165,6 @@ volumes:
   keycloak-db-data:
   user-db-data:
   exam-db-data:
-  group-db-data:
   submission-db-data:
   redis-data:
 
