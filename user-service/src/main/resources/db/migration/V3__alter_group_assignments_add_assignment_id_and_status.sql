@@ -1,5 +1,5 @@
 ALTER TABLE group_assignments
-    DROP CONSTRAINT group_assignments_pkey;
+DROP CONSTRAINT group_assignments_pkey;
 
 ALTER TABLE group_assignments
     ADD COLUMN assignment_id BIGSERIAL NOT NULL,
