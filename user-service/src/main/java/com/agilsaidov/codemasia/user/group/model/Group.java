@@ -2,16 +2,14 @@ package com.agilsaidov.codemasia.user.group.model;
 
 import com.agilsaidov.codemasia.user.user.model.User;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.OffsetDateTime;
 
 @Entity
 @AllArgsConstructor @NoArgsConstructor
 @Getter @Setter
+@Builder
 @Table(name = "groups")
 public class Group {
     @Id
