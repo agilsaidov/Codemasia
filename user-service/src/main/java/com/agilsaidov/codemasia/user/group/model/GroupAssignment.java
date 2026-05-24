@@ -15,11 +15,6 @@ import java.time.OffsetDateTime;
 @Table(name = "group_assignments")
 public class GroupAssignment {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "assignment_id")
-    private Long assignmentId;
-
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "group_id", nullable = false)
     private Group group;
@@ -31,17 +26,8 @@ public class GroupAssignment {
     @Column(name = "assigned_at", nullable = false)
     private OffsetDateTime assignedAt;
 
-    @Column(name = "ends_at")
-    private OffsetDateTime endsAt;
-
-    @Column(name = "active", nullable = false)
-    private Boolean active = true;
-
     @PrePersist
     public void onCreate() {
         assignedAt = OffsetDateTime.now();
-        if (active == null) {
-            active = true;
-        }
     }
 }
