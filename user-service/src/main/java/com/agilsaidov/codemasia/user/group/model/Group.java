@@ -13,7 +13,7 @@ import java.time.OffsetDateTime;
 @Table(name = "groups")
 public class Group {
     @Id
-    @Column(name = "id")
+    @Column(name = "id", length = 20)
     private String groupId;
 
     @Column(name = "name",  nullable = false, unique = true, length = 100)

@@ -1,7 +1,6 @@
 package com.agilsaidov.codemasia.user.specification;
 
 import com.agilsaidov.codemasia.user.group.model.Group;
-import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -12,10 +11,6 @@ import java.util.List;
 public class GroupSpec {
     public static Specification<Group> withFilters(String name, Long creatorId, OffsetDateTime createdAt) {
         return (root, criteriaQuery, criteriaBuilder) -> {
-            if (!Long.class.equals(criteriaQuery.getResultType())) {
-                root.fetch("createdBy", JoinType.INNER);
-            }
-
             List<Predicate> predicates = new ArrayList<>();
 
             if (name != null && !name.isBlank()) {

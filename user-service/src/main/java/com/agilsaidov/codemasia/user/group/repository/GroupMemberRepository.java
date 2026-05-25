@@ -1,0 +1,23 @@
+package com.agilsaidov.codemasia.user.group.repository;
+
+import com.agilsaidov.codemasia.user.group.model.GroupMember;
+import com.agilsaidov.codemasia.user.group.model.GroupMemberId;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import java.util.Collection;
+import java.util.List;
+
+@Repository
+public interface GroupMemberRepository extends JpaRepository<GroupMember, GroupMemberId> {
+
+    @Query("""
+            SELECT gm.id.groupId, COUNT(gm)
+            FROM GroupMember gm
+            WHERE gm.id.groupId IN :groupIds
+            GROUP BY gm.id.groupId
+            """)
+    List<Object[]> countMembersByGroupIds(@Param("groupIds") Collection<String> groupIds);
+}

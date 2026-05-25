@@ -1,7 +1,8 @@
 package com.agilsaidov.codemasia.user.group.controller;
 
 import com.agilsaidov.codemasia.user.group.dto.request.CreateGroupRequest;
-import com.agilsaidov.codemasia.user.group.dto.response.GroupResponse;
+import com.agilsaidov.codemasia.user.group.dto.response.AdminGroupDetailsResponse;
+import com.agilsaidov.codemasia.user.group.dto.response.GroupSummary;
 import com.agilsaidov.codemasia.user.group.service.GroupService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
@@ -22,20 +23,21 @@ public class GroupController {
 
     //Create group
     @PostMapping
-    public ResponseEntity<GroupResponse> createGroup(@Valid @RequestBody CreateGroupRequest request,
-                                                     @RequestHeader("X-User-Id") String keycloakId) {
+    public ResponseEntity<AdminGroupDetailsResponse> createGroup(@Valid @RequestBody CreateGroupRequest request,
+                                                                 @RequestHeader("X-User-Id") String keycloakId) {
         return ResponseEntity.status(HttpStatus.CREATED).body(groupService.createGroup(request, keycloakId));
     }
 
     //Get groups
     @GetMapping
-    public ResponseEntity<Page<GroupResponse>> getGroups(@RequestParam(required = false) String name,
-                                                         @RequestParam(required = false) Long creatorId,
-                                                         @RequestParam(required = false) OffsetDateTime createdAt,
-                                                         @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page parameter cannot be negative") int page,
-                                                         @RequestParam(defaultValue = "10") @Min(value = 1, message = "Size parameter must be at least 1") int size) {
+    public ResponseEntity<Page<GroupSummary>> getGroups(@RequestParam(required = false) String name,
+                                                        @RequestParam(required = false) Long creatorId,
+                                                        @RequestParam(required = false) OffsetDateTime createdAt,
+                                                        @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page parameter cannot be negative") int page,
+                                                        @RequestParam(defaultValue = "10") @Min(value = 1, message = "Size parameter must be at least 1") int size) {
         return ResponseEntity.ok(groupService.getGroups(name, creatorId, createdAt, page, size));
     }
+
     //Delete group
     //Update group
     //Add members
