@@ -6,11 +6,9 @@ import lombok.Setter;
 import java.time.OffsetDateTime;
 
 @Getter @Setter
-public class GroupResponse {
+public class GroupSummary {
     private String groupId;
     private String name;
-    private String description;
-    private CreatorSummary creator;
     private OffsetDateTime createdAt;
-    private OffsetDateTime updatedAt;
+    private Integer memberCount;
 }
