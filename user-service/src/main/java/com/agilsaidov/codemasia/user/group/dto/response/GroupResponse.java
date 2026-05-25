@@ -10,7 +10,7 @@ public class GroupResponse {
     private String groupId;
     private String name;
     private String description;
-    private String createdBy;
+    private CreatorSummary creator;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
 }

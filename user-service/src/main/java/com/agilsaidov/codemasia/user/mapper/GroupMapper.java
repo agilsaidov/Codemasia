@@ -7,6 +7,8 @@ import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring")
 public interface GroupMapper {
-    @Mapping(source = "createdBy.email", target = "createdBy")
+    @Mapping(source = "createdBy.userId", target = "creator.id")
+    @Mapping(source = "createdBy.name", target = "creator.name")
+    @Mapping(source = "createdBy.surname", target = "creator.surname")
     GroupResponse toGroupResponse(Group group);
 }

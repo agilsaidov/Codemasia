@@ -7,13 +7,18 @@ import com.agilsaidov.codemasia.user.group.dto.response.GroupResponse;
 import com.agilsaidov.codemasia.user.group.model.Group;
 import com.agilsaidov.codemasia.user.group.repository.GroupRepository;
 import com.agilsaidov.codemasia.user.mapper.GroupMapper;
+import com.agilsaidov.codemasia.user.specification.GroupSpec;
 import com.agilsaidov.codemasia.user.user.model.User;
 import com.agilsaidov.codemasia.user.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Service
@@ -57,5 +62,12 @@ public class GroupService {
         GroupResponse response = groupMapper.toGroupResponse(groupRepository.save(group));
         log.info("Group created groupId={} name={} createdBy={}", groupId, name, creator.getUserId());
         return response;
+    }
+
+    @Transactional(readOnly = true)
+    public Page<GroupResponse> getGroups(String name, Long creatorId, OffsetDateTime createdAt, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Group> groups = groupRepository.findAll(GroupSpec.withFilters(name, creatorId, createdAt), pageable);
+        return groups.map(groupMapper::toGroupResponse);
     }
 }
