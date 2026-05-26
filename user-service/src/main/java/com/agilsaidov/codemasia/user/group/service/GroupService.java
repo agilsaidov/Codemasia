@@ -4,8 +4,13 @@ import com.agilsaidov.codemasia.user.exception.DuplicateException;
 import com.agilsaidov.codemasia.user.exception.NotFoundException;
 import com.agilsaidov.codemasia.user.group.dto.request.CreateGroupRequest;
 import com.agilsaidov.codemasia.user.group.dto.response.AdminGroupDetailsResponse;
+import com.agilsaidov.codemasia.user.group.dto.response.AssignmentSummary;
 import com.agilsaidov.codemasia.user.group.dto.response.GroupSummary;
+import com.agilsaidov.codemasia.user.group.dto.response.MemberSummary;
 import com.agilsaidov.codemasia.user.group.model.Group;
+import com.agilsaidov.codemasia.user.group.model.GroupAssignment;
+import com.agilsaidov.codemasia.user.group.model.GroupMember;
+import com.agilsaidov.codemasia.user.group.repository.GroupAssignmentRepository;
 import com.agilsaidov.codemasia.user.group.repository.GroupMemberRepository;
 import com.agilsaidov.codemasia.user.group.repository.GroupRepository;
 import com.agilsaidov.codemasia.user.mapper.GroupMapper;
@@ -34,6 +39,7 @@ public class GroupService {
     private final UserRepository userRepository;
     private final GroupRepository groupRepository;
     private final GroupMemberRepository groupMemberRepository;
+    private final GroupAssignmentRepository groupAssignmentRepository;
     private final GroupMapper groupMapper;
 
     @Transactional
@@ -41,7 +47,10 @@ public class GroupService {
         log.info("Creating group groupId={} name={} keycloakId={}", request.getGroupId(), request.getName(), keycloakId);
 
         User creator = userRepository.getUserByKeycloakId(UUID.fromString(keycloakId))
-                .orElseThrow(() -> new NotFoundException("USER_NOT_FOUND", "Creator user not found"));
+                .orElseThrow(() -> {
+                    log.warn("Creator user not found keycloakId={}", keycloakId);
+                    return new NotFoundException("USER_NOT_FOUND", "Creator user not found");
+                });
 
         String groupId = request.getGroupId();
         String name = request.getName();
@@ -74,13 +83,41 @@ public class GroupService {
 
     @Transactional(readOnly = true)
     public Page<GroupSummary> getGroups(String name, Long creatorId, OffsetDateTime createdAt, int page, int size) {
+        log.debug("Fetching groups name={} creatorId={} createdAt={} page={} size={}", name, creatorId, createdAt, page, size);
         Pageable pageable = PageRequest.of(page, size);
         Page<Group> groups = groupRepository.findAll(GroupSpec.withFilters(name, creatorId, createdAt), pageable);
         Page<GroupSummary> summaries = groups.map(groupMapper::toGroupSummary);
         enrichMemberCounts(summaries.getContent());
+        log.debug("Fetched groups totalElements={} page={} size={}", summaries.getTotalElements(), page, size);
         return summaries;
     }
 
+
+    @Transactional(readOnly = true)
+    public AdminGroupDetailsResponse getGroupById(String groupId) {
+        log.debug("Fetching group groupId={}", groupId);
+        Group group = groupRepository.findByIdWithCreator(groupId)
+                .orElseThrow(() -> {
+                    log.warn("Group not found groupId={}", groupId);
+                    return new NotFoundException("GROUP_NOT_FOUND",
+                            "Group with id:" + groupId + " not found");
+                });
+
+        AdminGroupDetailsResponse response = groupMapper.toAdminGroupResponse(group);
+
+        List<GroupAssignment> groupAssignments = groupAssignmentRepository.findAllWithTeacherByGroupId(groupId);
+        List<AssignmentSummary> assignmentSummaries = groupAssignments.stream()
+                .map(groupMapper::toAssignmentSummary).toList();
+
+        List<GroupMember> groupMembers = groupMemberRepository.findAllWithUserByGroupId(groupId);
+        List<MemberSummary> memberSummaries = groupMembers.stream()
+                .map(groupMapper::toMemberSummary).toList();
+
+        response.setAssignments(assignmentSummaries);
+        response.setMembers(memberSummaries);
+        log.debug("Fetched group groupId={} members={} assignments={}", groupId, memberSummaries.size(), assignmentSummaries.size());
+        return response;
+    }
 
 
     private void enrichMemberCounts(List<GroupSummary> summaries) {
@@ -98,4 +135,6 @@ public class GroupService {
         summaries.forEach(summary ->
                 summary.setMemberCount(memberCounts.getOrDefault(summary.getGroupId(), 0)));
     }
+
+
 }

@@ -38,6 +38,10 @@ public class GroupController {
         return ResponseEntity.ok(groupService.getGroups(name, creatorId, createdAt, page, size));
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<AdminGroupDetailsResponse> getGroupById(@PathVariable("id") String groupId) {
+        return ResponseEntity.ok(groupService.getGroupById(groupId));
+    }
     //Delete group
     //Update group
     //Add members

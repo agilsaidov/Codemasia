@@ -20,4 +20,10 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, GroupM
             GROUP BY gm.id.groupId
             """)
     List<Object[]> countMembersByGroupIds(@Param("groupIds") Collection<String> groupIds);
-}
+
+    @Query("""
+    SELECT gm FROM GroupMember gm
+    JOIN FETCH gm.user
+    WHERE gm.group.groupId = :groupId
+    """)
+    List<GroupMember> findAllWithUserByGroupId(@Param("groupId") String groupId);}
