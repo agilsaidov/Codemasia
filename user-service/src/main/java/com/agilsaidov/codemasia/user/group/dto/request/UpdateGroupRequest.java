@@ -6,11 +6,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Getter @Setter
-public class CreateGroupRequest {
-    @NotBlank(message = "Field 'groupId' is required")
-    @Size(max = 20, message = "Maximum allowed size for 'groupId' is 20")
-    private String groupId;
-
+public class UpdateGroupRequest {
     @NotBlank(message = "Field 'name' is required")
     @Size(max = 20, message = "Maximum allowed size for 'name' is 100")
     private String name;

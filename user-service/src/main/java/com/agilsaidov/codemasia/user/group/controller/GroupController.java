@@ -1,6 +1,7 @@
 package com.agilsaidov.codemasia.user.group.controller;
 
 import com.agilsaidov.codemasia.user.group.dto.request.CreateGroupRequest;
+import com.agilsaidov.codemasia.user.group.dto.request.UpdateGroupRequest;
 import com.agilsaidov.codemasia.user.group.dto.response.AdminGroupDetailsResponse;
 import com.agilsaidov.codemasia.user.group.dto.response.GroupSummary;
 import com.agilsaidov.codemasia.user.group.dto.response.TeacherGroupDetailsResponse;
@@ -16,21 +17,21 @@ import org.springframework.web.bind.annotation.*;
 import java.time.OffsetDateTime;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/groups")
 @RequiredArgsConstructor
 public class GroupController {
 
     private final GroupService groupService;
 
     //Create group
-    @PostMapping("/groups")
+    @PostMapping
     public ResponseEntity<AdminGroupDetailsResponse> createGroup(@Valid @RequestBody CreateGroupRequest request,
                                                                  @RequestHeader("X-User-Id") String keycloakId) {
         return ResponseEntity.status(HttpStatus.CREATED).body(groupService.createGroup(request, keycloakId));
     }
 
     //Get groups
-    @GetMapping("/groups")
+    @GetMapping
     public ResponseEntity<Page<GroupSummary>> getGroups(@RequestParam(required = false) String name,
                                                         @RequestParam(required = false) Long creatorId,
                                                         @RequestParam(required = false) OffsetDateTime createdAt,
@@ -40,9 +41,9 @@ public class GroupController {
     }
 
     //Admin
-    @GetMapping("/groups/{id}")
+    @GetMapping("/{groupId}")
     public ResponseEntity<?> getGroupById(
-            @PathVariable("id") String groupId,
+            @PathVariable String groupId,
             @RequestHeader("X-User-Role") String role,
             @RequestHeader("X-User-Id") String keycloakId) {
 
@@ -52,9 +53,14 @@ public class GroupController {
         return ResponseEntity.ok(groupService.getTeacherGroupById(keycloakId, groupId));
     }
 
+    //Update group
+    @PutMapping("/{groupId}")
+    public ResponseEntity<AdminGroupDetailsResponse> updateGroup(@PathVariable String groupId,
+                                                                 @RequestBody UpdateGroupRequest request){
+        return ResponseEntity.ok(groupService.updateGroup(groupId, request));
+    }
 
     //Delete group
-    //Update group
     //Add members
     //Remove members
     //Assign teacher

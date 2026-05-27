@@ -4,6 +4,7 @@ import com.agilsaidov.codemasia.user.exception.BadRequestException;
 import com.agilsaidov.codemasia.user.exception.DuplicateException;
 import com.agilsaidov.codemasia.user.exception.NotFoundException;
 import com.agilsaidov.codemasia.user.group.dto.request.CreateGroupRequest;
+import com.agilsaidov.codemasia.user.group.dto.request.UpdateGroupRequest;
 import com.agilsaidov.codemasia.user.group.dto.response.*;
 import com.agilsaidov.codemasia.user.group.model.Group;
 import com.agilsaidov.codemasia.user.group.model.GroupAssignment;
@@ -101,37 +102,37 @@ public class GroupService {
                             "Group with id:" + groupId + " not found");
                 });
 
-        AdminGroupDetailsResponse response = groupMapper.toAdminGroupResponse(group);
+        AdminGroupDetailsResponse response = createAdminGroupResponse(group);
 
-        List<GroupAssignment> groupAssignments = groupAssignmentRepository.findAllWithTeacherByGroupId(groupId);
-        List<AssignmentSummary> assignmentSummaries = groupAssignments.stream()
-                .map(groupMapper::toAssignmentSummary).toList();
-
-        List<GroupMember> groupMembers = groupMemberRepository.findAllWithUserByGroupId(groupId);
-        List<MemberSummary> memberSummaries = groupMembers.stream()
-                .map(groupMapper::toMemberSummary).toList();
-
-        response.setAssignments(assignmentSummaries);
-        response.setMembers(memberSummaries);
-        log.debug("Fetched group groupId={} members={} assignments={}", groupId, memberSummaries.size(), assignmentSummaries.size());
+        log.debug("Fetched group groupId={} members={} assignments={}", groupId, response.getMembers().size(), response.getAssignments().size());
         return response;
     }
 
 
     @Transactional(readOnly = true)
     public TeacherGroupDetailsResponse getTeacherGroupById(String keycloakId, String groupId) {
+        log.debug("Fetching teacher group keycloakId={} groupId={}", keycloakId, groupId);
+
         User teacher = userRepository.getUserByKeycloakId(UUID.fromString(keycloakId))
-                .orElseThrow(() -> new NotFoundException("USER_NOT_FOUND", "User with id:" + keycloakId + " not found"));
+                .orElseThrow(() -> {
+                    log.warn("Teacher user not found keycloakId={}", keycloakId);
+                    return new NotFoundException("USER_NOT_FOUND", "User with id:" + keycloakId + " not found");
+                });
 
         Group group = groupRepository.findById(groupId)
-                .orElseThrow(() -> new NotFoundException("GROUP_NOT_FOUND", "Group with id:" + groupId + " not found"));
+                .orElseThrow(() -> {
+                    log.warn("Group not found groupId={}", groupId);
+                    return new NotFoundException("GROUP_NOT_FOUND", "Group with id:" + groupId + " not found");
+                });
 
         GroupAssignment assignment = groupAssignmentRepository
                 .findByGroup_GroupIdAndTeacher_UserId(groupId, teacher.getUserId())
-                .orElseThrow(() -> new BadRequestException("ASSIGNMENT_NOT_FOUND",
-                                "Teacher with id:" + teacher.getUserId()
-                                + " not assigned to group with id:" + groupId)
-                );
+                .orElseThrow(() -> {
+                    log.warn("Teacher assignment not found teacherId={} groupId={}", teacher.getUserId(), groupId);
+                    return new BadRequestException("ASSIGNMENT_NOT_FOUND",
+                            "Teacher with id:" + teacher.getUserId()
+                                    + " not assigned to group with id:" + groupId);
+                });
 
         TeacherGroupDetailsResponse response = groupMapper.toTeacherGroupResponse(group);
 
@@ -142,9 +143,47 @@ public class GroupService {
         response.setMemberCount(members.size());
         response.setMyAssignment(groupMapper.toTeacherAssignmentSummary(assignment));
 
+        log.debug("Fetched teacher group groupId={} teacherId={} members={}", groupId, teacher.getUserId(), members.size());
         return response;
     }
 
+    public AdminGroupDetailsResponse updateGroup(String groupId, UpdateGroupRequest request) {
+        log.info("Updating group groupId={} name={}", groupId, request.getName());
+
+        Group group = groupRepository.findById(groupId)
+                .orElseThrow(() -> {
+                    log.warn("Group not found groupId={}", groupId);
+                    return new NotFoundException("GROUP_NOT_FOUND",
+                            "Group with id:" + groupId + " not found");
+                });
+
+        group.setName(request.getName());
+        group.setDescription(request.getDescription());
+        Group updatedGroup = groupRepository.save(group);
+
+        AdminGroupDetailsResponse response = createAdminGroupResponse(updatedGroup);
+        log.info("Group updated groupId={} name={} members={} assignments={}",
+                groupId, updatedGroup.getName(), response.getMembers().size(), response.getAssignments().size());
+
+        return response;
+    }
+
+
+    private AdminGroupDetailsResponse createAdminGroupResponse(Group group) {
+        AdminGroupDetailsResponse response = groupMapper.toAdminGroupResponse(group);
+
+        List<GroupAssignment> groupAssignments = groupAssignmentRepository.findAllWithTeacherByGroupId(group.getGroupId());
+        List<AssignmentSummary> assignmentSummaries = groupAssignments.stream()
+                .map(groupMapper::toAssignmentSummary).toList();
+
+        List<GroupMember> groupMembers = groupMemberRepository.findAllWithUserByGroupId(group.getGroupId());
+        List<MemberSummary> memberSummaries = groupMembers.stream()
+                .map(groupMapper::toMemberSummary).toList();
+
+        response.setAssignments(assignmentSummaries);
+        response.setMembers(memberSummaries);
+        return response;
+    }
 
     private void enrichMemberCounts(List<GroupSummary> summaries) {
         if (summaries.isEmpty()) {
