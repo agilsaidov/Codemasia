@@ -3,6 +3,7 @@ package com.agilsaidov.codemasia.user.group.controller;
 import com.agilsaidov.codemasia.user.group.dto.request.CreateGroupRequest;
 import com.agilsaidov.codemasia.user.group.dto.response.AdminGroupDetailsResponse;
 import com.agilsaidov.codemasia.user.group.dto.response.GroupSummary;
+import com.agilsaidov.codemasia.user.group.dto.response.TeacherGroupDetailsResponse;
 import com.agilsaidov.codemasia.user.group.service.GroupService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
@@ -15,21 +16,21 @@ import org.springframework.web.bind.annotation.*;
 import java.time.OffsetDateTime;
 
 @RestController
-@RequestMapping("/api/groups")
+@RequestMapping("/api")
 @RequiredArgsConstructor
 public class GroupController {
 
     private final GroupService groupService;
 
     //Create group
-    @PostMapping
+    @PostMapping("/groups")
     public ResponseEntity<AdminGroupDetailsResponse> createGroup(@Valid @RequestBody CreateGroupRequest request,
                                                                  @RequestHeader("X-User-Id") String keycloakId) {
         return ResponseEntity.status(HttpStatus.CREATED).body(groupService.createGroup(request, keycloakId));
     }
 
     //Get groups
-    @GetMapping
+    @GetMapping("/groups")
     public ResponseEntity<Page<GroupSummary>> getGroups(@RequestParam(required = false) String name,
                                                         @RequestParam(required = false) Long creatorId,
                                                         @RequestParam(required = false) OffsetDateTime createdAt,
@@ -38,10 +39,20 @@ public class GroupController {
         return ResponseEntity.ok(groupService.getGroups(name, creatorId, createdAt, page, size));
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<AdminGroupDetailsResponse> getGroupById(@PathVariable("id") String groupId) {
-        return ResponseEntity.ok(groupService.getGroupById(groupId));
+    //Admin
+    @GetMapping("/groups/{id}")
+    public ResponseEntity<?> getGroupById(
+            @PathVariable("id") String groupId,
+            @RequestHeader("X-User-Role") String role,
+            @RequestHeader("X-User-Id") String keycloakId) {
+
+        if ("ADMIN".equals(role)) {
+            return ResponseEntity.ok(groupService.getGroupById(groupId));
+        }
+        return ResponseEntity.ok(groupService.getTeacherGroupById(keycloakId, groupId));
     }
+
+
     //Delete group
     //Update group
     //Add members

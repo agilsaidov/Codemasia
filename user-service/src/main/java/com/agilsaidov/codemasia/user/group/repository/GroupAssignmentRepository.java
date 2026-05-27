@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface GroupAssignmentRepository extends JpaRepository<GroupAssignment, Long> {
@@ -17,4 +18,6 @@ public interface GroupAssignmentRepository extends JpaRepository<GroupAssignment
     ORDER BY ga.assignedAt DESC
     """)
     List<GroupAssignment> findAllWithTeacherByGroupId(@Param("groupId") String groupId);
+
+    Optional<GroupAssignment> findByGroup_GroupIdAndTeacher_UserId(String groupId, Long userId);
 }

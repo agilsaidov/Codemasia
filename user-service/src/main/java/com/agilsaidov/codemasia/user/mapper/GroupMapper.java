@@ -1,9 +1,6 @@
 package com.agilsaidov.codemasia.user.mapper;
 
-import com.agilsaidov.codemasia.user.group.dto.response.AdminGroupDetailsResponse;
-import com.agilsaidov.codemasia.user.group.dto.response.AssignmentSummary;
-import com.agilsaidov.codemasia.user.group.dto.response.GroupSummary;
-import com.agilsaidov.codemasia.user.group.dto.response.MemberSummary;
+import com.agilsaidov.codemasia.user.group.dto.response.*;
 import com.agilsaidov.codemasia.user.group.model.Group;
 import com.agilsaidov.codemasia.user.group.model.GroupAssignment;
 import com.agilsaidov.codemasia.user.group.model.GroupMember;
@@ -32,4 +29,11 @@ public interface GroupMapper {
     @Mapping(source = "user.surname", target = "surname")
     @Mapping(source = "user.email", target = "email")
     MemberSummary toMemberSummary(GroupMember groupMember);
+
+    @Mapping(target = "members", ignore = true)
+    @Mapping(target = "memberCount", ignore = true)
+    @Mapping(target = "myAssignment", ignore = true)
+    TeacherGroupDetailsResponse toTeacherGroupResponse(Group group);
+
+    TeacherAssignmentSummary toTeacherAssignmentSummary(GroupAssignment assignment);
 }
