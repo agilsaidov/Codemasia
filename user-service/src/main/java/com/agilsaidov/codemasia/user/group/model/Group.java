@@ -22,6 +22,10 @@ public class Group {
     @Column(name = "description", length = 500)
     private String description;
 
+    @Builder.Default
+    @Column(name = "enabled", nullable = false)
+    private Boolean enabled = true;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by", nullable = false)
     private User createdBy;
@@ -36,6 +40,9 @@ public class Group {
     public void onCreate() {
         createdAt = OffsetDateTime.now();
         updatedAt = OffsetDateTime.now();
+        if (enabled == null) {
+            enabled = true;
+        }
     }
 
     @PreUpdate
