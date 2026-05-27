@@ -35,9 +35,10 @@ public class GroupController {
     public ResponseEntity<Page<GroupSummary>> getGroups(@RequestParam(required = false) String name,
                                                         @RequestParam(required = false) Long creatorId,
                                                         @RequestParam(required = false) OffsetDateTime createdAt,
+                                                        @RequestParam(required = false) Boolean enabled,
                                                         @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page parameter cannot be negative") int page,
                                                         @RequestParam(defaultValue = "10") @Min(value = 1, message = "Size parameter must be at least 1") int size) {
-        return ResponseEntity.ok(groupService.getGroups(name, creatorId, createdAt, page, size));
+        return ResponseEntity.ok(groupService.getGroups(name, creatorId, createdAt, enabled, page, size));
     }
 
     //Admin
@@ -48,7 +49,7 @@ public class GroupController {
             @RequestHeader("X-User-Id") String keycloakId) {
 
         if ("ADMIN".equals(role)) {
-            return ResponseEntity.ok(groupService.getGroupById(groupId));
+            return ResponseEntity.ok(groupService.getAdminGroupById(groupId));
         }
         return ResponseEntity.ok(groupService.getTeacherGroupById(keycloakId, groupId));
     }
@@ -58,6 +59,13 @@ public class GroupController {
     public ResponseEntity<AdminGroupDetailsResponse> updateGroup(@PathVariable String groupId,
                                                                  @RequestBody UpdateGroupRequest request){
         return ResponseEntity.ok(groupService.updateGroup(groupId, request));
+    }
+
+    @PatchMapping("/{groupId}/enable")
+    public ResponseEntity<Void> enableGroup(@PathVariable String groupId,
+                                            @RequestParam boolean enabled) {
+        groupService.enableGroup(groupId, enabled);
+        return ResponseEntity.ok().build();
     }
 
     //Delete group

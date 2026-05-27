@@ -9,10 +9,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class GroupSpec {
-    public static Specification<Group> withFilters(String name, Long creatorId, OffsetDateTime createdAt) {
+    public static Specification<Group> withFilters(String name, Long creatorId, OffsetDateTime createdAt, Boolean enabled) {
         return (root, criteriaQuery, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
 
+            if (enabled != null) {
+                predicates.add(criteriaBuilder.equal(root.get("enabled"), enabled));
+            }
             if (name != null && !name.isBlank()) {
                 predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("name")), "%" + name.toLowerCase() + "%"));
             }

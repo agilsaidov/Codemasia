@@ -11,6 +11,7 @@ public class AdminGroupDetailsResponse {
     private String groupId;
     private String name;
     private String description;
+    private Boolean enabled;
     private CreatorSummary creator;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;

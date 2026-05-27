@@ -12,4 +12,5 @@ public class MemberSummary {
     private String name;
     private String surname;
     private OffsetDateTime joinedAt;
+    private Boolean enabled;
 }

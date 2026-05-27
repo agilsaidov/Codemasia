@@ -9,6 +9,7 @@ import java.time.OffsetDateTime;
 public class GroupSummary {
     private String groupId;
     private String name;
+    private Boolean enabled;
     private OffsetDateTime createdAt;
     private Integer memberCount;
 }

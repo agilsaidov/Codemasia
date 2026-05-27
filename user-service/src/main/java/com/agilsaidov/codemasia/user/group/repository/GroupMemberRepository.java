@@ -17,6 +17,7 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, GroupM
             SELECT gm.id.groupId, COUNT(gm)
             FROM GroupMember gm
             WHERE gm.id.groupId IN :groupIds
+              AND gm.enabled = true
             GROUP BY gm.id.groupId
             """)
     List<Object[]> countMembersByGroupIds(@Param("groupIds") Collection<String> groupIds);
