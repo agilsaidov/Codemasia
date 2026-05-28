@@ -34,6 +34,10 @@ public class GroupMember {
     @Column(name = "enabled", nullable = false)
     private Boolean enabled = true;
 
+    public GroupMember(User user) {
+        this.user = user;
+    }
+
     @PrePersist
     public void onCreate() {
         joinedAt = OffsetDateTime.now();

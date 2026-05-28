@@ -194,7 +194,7 @@ public class GroupService {
 
 
 
-    private AdminGroupDetailsResponse createAdminGroupResponse(Group group) {
+    AdminGroupDetailsResponse createAdminGroupResponse(Group group) {
         AdminGroupDetailsResponse response = groupMapper.toAdminGroupResponse(group);
 
         List<GroupAssignment> groupAssignments = groupAssignmentRepository.findAllWithTeacherByGroupId(group.getGroupId());

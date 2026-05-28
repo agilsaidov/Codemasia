@@ -13,6 +13,8 @@ import java.util.List;
 @Repository
 public interface GroupMemberRepository extends JpaRepository<GroupMember, GroupMemberId> {
 
+    List<GroupMember> findByGroup_GroupIdAndId_UserIdIn(String groupId, Collection<Long> userIds);
+
     @Query("""
             SELECT gm.id.groupId, COUNT(gm)
             FROM GroupMember gm
