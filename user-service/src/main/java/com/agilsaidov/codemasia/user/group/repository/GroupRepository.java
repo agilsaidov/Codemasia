@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.OffsetDateTime;
 import java.util.Optional;
 
 @Repository
@@ -29,7 +30,10 @@ public interface GroupRepository extends JpaRepository<Group, String>, JpaSpecif
     WHERE ga.teacher.userId = :teacherId
       AND ga.active = true
       AND ga.group.enabled = true
+      AND (ga.endsAt IS NULL OR ga.endsAt > :now)
       ORDER BY ga.group.name ASC
     """)
-    Page<Group> findActiveGroupsByTeacherId(@Param("teacherId") Long teacherId, Pageable pageable);
+    Page<Group> findActiveGroupsByTeacherId(@Param("teacherId") Long teacherId,
+                                            @Param("now") OffsetDateTime now,
+                                            Pageable pageable);
 }

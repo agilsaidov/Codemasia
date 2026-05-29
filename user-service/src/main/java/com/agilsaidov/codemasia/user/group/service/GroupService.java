@@ -1,6 +1,5 @@
 package com.agilsaidov.codemasia.user.group.service;
 
-import com.agilsaidov.codemasia.user.exception.BadRequestException;
 import com.agilsaidov.codemasia.user.exception.DuplicateException;
 import com.agilsaidov.codemasia.user.exception.NotFoundException;
 import com.agilsaidov.codemasia.user.group.dto.request.CreateGroupRequest;
@@ -9,7 +8,6 @@ import com.agilsaidov.codemasia.user.group.dto.response.*;
 import com.agilsaidov.codemasia.user.group.model.Group;
 import com.agilsaidov.codemasia.user.group.model.GroupAssignment;
 import com.agilsaidov.codemasia.user.group.model.GroupMember;
-import com.agilsaidov.codemasia.user.group.model.GroupMemberId;
 import com.agilsaidov.codemasia.user.group.repository.GroupAssignmentRepository;
 import com.agilsaidov.codemasia.user.group.repository.GroupMemberRepository;
 import com.agilsaidov.codemasia.user.group.repository.GroupRepository;
@@ -22,6 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -85,7 +84,8 @@ public class GroupService {
     public Page<GroupSummary> getGroups(String name, Long creatorId, OffsetDateTime createdAt, Boolean enabled, int page, int size) {
         log.debug("Fetching groups name={} creatorId={} createdAt={} enabled={} page={} size={}",
                 name, creatorId, createdAt, enabled, page, size);
-        Pageable pageable = PageRequest.of(page, size);
+        Sort sort = Sort.by(Sort.Order.desc("createdAt"), Sort.Order.asc("groupId"));
+        Pageable pageable = PageRequest.of(page, size, sort);
         Page<Group> groups = groupRepository.findAll(GroupSpec.withFilters(name, creatorId, createdAt, enabled), pageable);
         Page<GroupSummary> summaries = groups.map(groupMapper::toGroupSummary);
         enrichMemberCounts(summaries.getContent());
@@ -105,7 +105,7 @@ public class GroupService {
         Pageable pageable = PageRequest.of(page, size);
 
         Page<Group> groups = groupRepository
-                .findActiveGroupsByTeacherId(teacher.getUserId(), pageable);
+                .findActiveGroupsByTeacherId(teacher.getUserId(), OffsetDateTime.now(), pageable);
 
         Page<TeacherGroupSummary> summaries = groups.map(groupMapper::toTeacherGroupSummary);
         enrichMemberCounts(summaries.getContent());
@@ -159,6 +159,12 @@ public class GroupService {
                     log.warn("Active teacher assignment not found teacherId={} groupId={}", teacher.getUserId(), groupId);
                     return new NotFoundException("GROUP_NOT_FOUND", "Group with id:" + groupId + " not found");
                 });
+
+        if (assignment.getEndsAt() != null && assignment.getEndsAt().isBefore(OffsetDateTime.now())) {
+            log.warn("Teacher access denied for expired assignment teacherId={} groupId={} endsAt={}",
+                    teacher.getUserId(), groupId, assignment.getEndsAt());
+            throw new NotFoundException("GROUP_NOT_FOUND", "Group with id:" + groupId + " not found");
+        }
 
         TeacherGroupDetailsResponse response = groupMapper.toTeacherGroupResponse(group);
 
