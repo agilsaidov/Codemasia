@@ -3,6 +3,7 @@ package com.agilsaidov.codemasia.user.group.controller;
 import com.agilsaidov.codemasia.user.group.dto.request.AddGroupMemberRequest;
 import com.agilsaidov.codemasia.user.group.dto.request.AssignTeacherRequest;
 import com.agilsaidov.codemasia.user.group.dto.request.CreateGroupRequest;
+import com.agilsaidov.codemasia.user.group.dto.request.UpdateAssignmentRequest;
 import com.agilsaidov.codemasia.user.group.dto.request.UpdateGroupRequest;
 import com.agilsaidov.codemasia.user.group.dto.response.AdminGroupDetailsResponse;
 import com.agilsaidov.codemasia.user.group.dto.response.GroupSummary;
@@ -100,6 +101,14 @@ public class GroupController {
     }
 
 
+    @PutMapping("/{groupId}/assignments/{assignmentId}")
+    public ResponseEntity<AdminGroupDetailsResponse> updateAssignment(@PathVariable String groupId,
+                                                                      @PathVariable Long assignmentId,
+                                                                      @Valid @RequestBody UpdateAssignmentRequest request) {
+        return ResponseEntity.ok(groupAssignmentService.updateAssignment(groupId, assignmentId, request));
+    }
+
+
     @PatchMapping("/{groupId}/assignments/{assignmentId}/enable")
     public ResponseEntity<Void> enableAssignment(@PathVariable String groupId,
                                                  @PathVariable Long assignmentId,
@@ -108,9 +117,4 @@ public class GroupController {
         return ResponseEntity.ok().build();
     }
 
-    //Delete group
-    //Add members
-    //Remove members
-    //Assign teacher
-    //Unassign teacher
 }

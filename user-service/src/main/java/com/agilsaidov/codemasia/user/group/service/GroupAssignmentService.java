@@ -4,6 +4,7 @@ import com.agilsaidov.codemasia.user.exception.BadRequestException;
 import com.agilsaidov.codemasia.user.exception.DuplicateException;
 import com.agilsaidov.codemasia.user.exception.NotFoundException;
 import com.agilsaidov.codemasia.user.group.dto.request.AssignTeacherRequest;
+import com.agilsaidov.codemasia.user.group.dto.request.UpdateAssignmentRequest;
 import com.agilsaidov.codemasia.user.group.dto.response.AdminGroupDetailsResponse;
 import com.agilsaidov.codemasia.user.group.model.Group;
 import com.agilsaidov.codemasia.user.group.model.GroupAssignment;
@@ -73,6 +74,27 @@ public class GroupAssignmentService {
 
 
     @Transactional
+    public AdminGroupDetailsResponse updateAssignment(String groupId, Long assignmentId,
+                                                      UpdateAssignmentRequest request) {
+        Group group = groupRepository.findByIdWithCreator(groupId)
+                .orElseThrow(() -> {
+                    log.warn("Group not found groupId={}", groupId);
+                    return new NotFoundException("GROUP_NOT_FOUND",
+                            "Group with id: " + groupId + " not found");
+                });
+
+        GroupAssignment assignment = getAssignmentInGroup(groupId, assignmentId);
+
+        assignment.setTitle(request.getTitle());
+        assignment.setEndsAt(request.getEndsAt());
+
+        groupAssignmentRepository.save(assignment);
+        log.info("Assignment {} in group {} updated", assignmentId, groupId);
+        return groupService.createAdminGroupResponse(group);
+    }
+
+
+    @Transactional
     public void enableAssignment(String groupId, Long assignmentId, boolean enabled) {
         log.info("Assignment {} in group {} is setting to enabled={}", assignmentId, groupId, enabled);
 
@@ -82,18 +104,7 @@ public class GroupAssignmentService {
                     "Group with id: " + groupId + " not found");
         }
 
-        GroupAssignment assignment = groupAssignmentRepository.findById(assignmentId)
-                .orElseThrow(() -> {
-                    log.warn("Assignment not found assignmentId={}", assignmentId);
-                    return new NotFoundException("ASSIGNMENT_NOT_FOUND",
-                            "Assignment with id: " + assignmentId + " not found");
-                });
-
-        if (!groupId.equals(assignment.getGroup().getGroupId())) {
-            log.warn("Assignment {} does not belong to group {}", assignmentId, groupId);
-            throw new NotFoundException("ASSIGNMENT_NOT_FOUND",
-                    "Assignment with id: " + assignmentId + " not found in group: " + groupId);
-        }
+        GroupAssignment assignment = getAssignmentInGroup(groupId, assignmentId);
 
         if (enabled == Boolean.TRUE.equals(assignment.getActive())) {
             log.info("Assignment {} already has enabled={}, skipping", assignmentId, enabled);
@@ -109,6 +120,25 @@ public class GroupAssignmentService {
         assignment.setActive(enabled);
         groupAssignmentRepository.save(assignment);
         log.info("Assignment {} in group {} set to enabled={}", assignmentId, groupId, enabled);
+    }
+
+
+
+    private GroupAssignment getAssignmentInGroup(String groupId, Long assignmentId) {
+        GroupAssignment assignment = groupAssignmentRepository.findById(assignmentId)
+                .orElseThrow(() -> {
+                    log.warn("Assignment not found assignmentId={}", assignmentId);
+                    return new NotFoundException("ASSIGNMENT_NOT_FOUND",
+                            "Assignment with id: " + assignmentId + " not found");
+                });
+
+        if (!groupId.equals(assignment.getGroup().getGroupId())) {
+            log.warn("Assignment {} does not belong to group {}", assignmentId, groupId);
+            throw new NotFoundException("ASSIGNMENT_NOT_FOUND",
+                    "Assignment with id: " + assignmentId + " not found in group: " + groupId);
+        }
+
+        return assignment;
     }
 
 }
