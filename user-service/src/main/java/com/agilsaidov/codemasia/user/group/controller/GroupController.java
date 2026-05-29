@@ -7,6 +7,7 @@ import com.agilsaidov.codemasia.user.group.dto.request.UpdateAssignmentRequest;
 import com.agilsaidov.codemasia.user.group.dto.request.UpdateGroupRequest;
 import com.agilsaidov.codemasia.user.group.dto.response.AdminGroupDetailsResponse;
 import com.agilsaidov.codemasia.user.group.dto.response.GroupSummary;
+import com.agilsaidov.codemasia.user.group.dto.response.TeacherGroupSummary;
 import com.agilsaidov.codemasia.user.group.service.GroupAssignmentService;
 import com.agilsaidov.codemasia.user.group.service.GroupMemberService;
 import com.agilsaidov.codemasia.user.group.service.GroupService;
@@ -45,6 +46,14 @@ public class GroupController {
                                                         @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page parameter cannot be negative") int page,
                                                         @RequestParam(defaultValue = "10") @Min(value = 1, message = "Size parameter must be at least 1") int size) {
         return ResponseEntity.ok(groupService.getGroups(name, creatorId, createdAt, enabled, page, size));
+    }
+
+
+    @GetMapping("/my")
+    public ResponseEntity<Page<TeacherGroupSummary>> getTeacherGroups(@RequestHeader("X-User-Id") String keycloakId,
+                                                                @RequestParam(defaultValue = "0") int page,
+                                                                @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(groupService.getTeacherGroups(keycloakId, page, size));
     }
 
 

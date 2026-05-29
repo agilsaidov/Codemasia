@@ -95,6 +95,27 @@ public class GroupService {
 
 
     @Transactional(readOnly = true)
+    public Page<TeacherGroupSummary> getTeacherGroups(String keycloakId, int page, int size) {
+        User teacher = userRepository.getUserByKeycloakId(UUID.fromString(keycloakId))
+                .orElseThrow(() -> {
+                    log.warn("Teacher not found keycloakId={}", keycloakId);
+                    return new NotFoundException("USER_NOT_FOUND", "User not found");
+                });
+
+        Pageable pageable = PageRequest.of(page, size);
+
+        Page<Group> groups = groupRepository
+                .findActiveGroupsByTeacherId(teacher.getUserId(), pageable);
+
+        Page<TeacherGroupSummary> summaries = groups.map(groupMapper::toTeacherGroupSummary);
+        enrichMemberCounts(summaries.getContent());
+        log.debug("Fetched teacher groups teacherId={} totalElements={}",
+                teacher.getUserId(), summaries.getTotalElements());
+        return summaries;
+    }
+
+
+    @Transactional(readOnly = true)
     public AdminGroupDetailsResponse getAdminGroupById(String groupId) {
         log.debug("Fetching group groupId={}", groupId);
         Group group = groupRepository.findByIdWithCreator(groupId)
@@ -155,6 +176,7 @@ public class GroupService {
         return response;
     }
 
+
     public AdminGroupDetailsResponse updateGroup(String groupId, UpdateGroupRequest request) {
         log.info("Updating group groupId={} name={}", groupId, request.getName());
 
@@ -208,12 +230,12 @@ public class GroupService {
         return response;
     }
 
-    private void enrichMemberCounts(List<GroupSummary> summaries) {
+    private void enrichMemberCounts(List<? extends MemberCountable> summaries) {
         if (summaries.isEmpty()) {
             return;
         }
 
-        List<String> groupIds = summaries.stream().map(GroupSummary::getGroupId).toList();
+        List<String> groupIds = summaries.stream().map(MemberCountable::getGroupId).toList();
         Map<String, Integer> memberCounts = new HashMap<>();
 
         for (Object[] row : groupMemberRepository.countMembersByGroupIds(groupIds)) {

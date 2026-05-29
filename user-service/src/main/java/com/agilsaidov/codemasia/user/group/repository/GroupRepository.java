@@ -1,6 +1,8 @@
 package com.agilsaidov.codemasia.user.group.repository;
 
 import com.agilsaidov.codemasia.user.group.model.Group;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -21,4 +23,13 @@ public interface GroupRepository extends JpaRepository<Group, String>, JpaSpecif
     WHERE g.groupId = :groupId
     """)
     Optional<Group> findByIdWithCreator(@Param("groupId") String groupId);
+
+    @Query("""
+    SELECT ga.group FROM GroupAssignment ga
+    WHERE ga.teacher.userId = :teacherId
+      AND ga.active = true
+      AND ga.group.enabled = true
+      ORDER BY ga.group.name ASC
+    """)
+    Page<Group> findActiveGroupsByTeacherId(@Param("teacherId") Long teacherId, Pageable pageable);
 }

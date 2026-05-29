@@ -3,13 +3,9 @@ package com.agilsaidov.codemasia.user.group.dto.response;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.OffsetDateTime;
-
 @Getter @Setter
-public class GroupSummary implements MemberCountable {
+public class TeacherGroupSummary implements MemberCountable {
     private String groupId;
     private String name;
-    private Boolean enabled;
-    private OffsetDateTime createdAt;
     private Integer memberCount;
 }

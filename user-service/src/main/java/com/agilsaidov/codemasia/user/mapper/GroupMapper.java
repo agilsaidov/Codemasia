@@ -37,4 +37,6 @@ public interface GroupMapper {
     TeacherGroupDetailsResponse toTeacherGroupResponse(Group group);
 
     TeacherAssignmentSummary toTeacherAssignmentSummary(GroupAssignment assignment);
+
+    TeacherGroupSummary toTeacherGroupSummary(Group group);
 }
