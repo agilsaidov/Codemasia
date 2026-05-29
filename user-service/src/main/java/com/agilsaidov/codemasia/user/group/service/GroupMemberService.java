@@ -35,7 +35,6 @@ public class GroupMemberService {
     private final GroupMemberRepository groupMemberRepository;
     private final GroupService groupService;
     private final UserRepository userRepository;
-    private final EntityManager entityManager;
 
     @Transactional
     public AdminGroupDetailsResponse addGroupMembers(String groupId, AddGroupMemberRequest request) {
@@ -108,5 +107,35 @@ public class GroupMemberService {
         log.info("Added members to group groupId={} count={} totalMembers={}",
                 groupId, membersToSave.size(), response.getMembers().size());
         return response;
+    }
+
+
+    @Transactional
+    public void enableGroupMember(String groupId, Long memberId, boolean enabled) {
+        log.info("Member {} in group {} is setting to enabled={}", memberId, groupId, enabled);
+
+        Group group = groupRepository.findByIdWithCreator(groupId)
+                .orElseThrow(() -> {
+                    log.warn("Group not found groupId={}", groupId);
+                    return new NotFoundException("GROUP_NOT_FOUND",
+                            "Group with id=" + groupId + " not found");
+                });
+
+
+        GroupMember member = groupMemberRepository.findById(new GroupMemberId(groupId, memberId))
+                .orElseThrow(() -> {
+                    log.warn("Member not found memberId={}", memberId);
+                    return new NotFoundException("MEMBER_NOT_FOUND",
+                            "User with id: " + memberId + " is not a member of group: " + groupId);
+                });
+
+        if(enabled == member.getEnabled()) {
+            log.info("Member {} already has enabled={}, skipping", memberId, enabled);
+            return;
+        }
+
+        member.setEnabled(enabled);
+        groupMemberRepository.save(member);
+        log.info("Member {} in group {} set to enabled={}", memberId, groupId, enabled);
     }
 }

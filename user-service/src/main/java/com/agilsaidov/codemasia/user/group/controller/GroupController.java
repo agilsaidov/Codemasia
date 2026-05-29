@@ -79,6 +79,15 @@ public class GroupController {
                 .body(groupMemberService.addGroupMembers(groupId, request));
     }
 
+
+    @PatchMapping("/{groupId}/members/{memberId}/enable")
+    public ResponseEntity<Void> enableGroupMember(@PathVariable String groupId,
+                                                                       @PathVariable Long memberId,
+                                                                       @RequestParam boolean enabled) {
+        groupMemberService.enableGroupMember(groupId, memberId, enabled);
+        return ResponseEntity.ok().build();
+    }
+
     //Delete group
     //Add members
     //Remove members
