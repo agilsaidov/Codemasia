@@ -13,7 +13,6 @@ import com.agilsaidov.codemasia.user.group.repository.GroupRepository;
 import com.agilsaidov.codemasia.user.user.model.Role;
 import com.agilsaidov.codemasia.user.user.model.User;
 import com.agilsaidov.codemasia.user.user.repository.UserRepository;
-import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -137,5 +136,28 @@ public class GroupMemberService {
         member.setEnabled(enabled);
         groupMemberRepository.save(member);
         log.info("Member {} in group {} set to enabled={}", memberId, groupId, enabled);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean isActiveMember(String groupId, Long userId) {
+        return groupMemberRepository.findById(new GroupMemberId(groupId, userId))
+                .map(member -> Boolean.TRUE.equals(member.getEnabled()))
+                .orElse(false);
+    }
+
+    @Transactional(readOnly = true)
+    public void requireActiveMember(String groupId, Long userId) {
+        GroupMember member = groupMemberRepository.findById(new GroupMemberId(groupId, userId))
+                .orElseThrow(() -> {
+                    log.warn("Member not found groupId={} userId={}", groupId, userId);
+                    return new NotFoundException("MEMBER_NOT_FOUND",
+                            "User with id: " + userId + " is not a member of group: " + groupId);
+                });
+
+        if (!Boolean.TRUE.equals(member.getEnabled())) {
+            log.warn("Member is disabled groupId={} userId={}", groupId, userId);
+            throw new BadRequestException("MEMBER_DISABLED",
+                    "User with id: " + userId + " is not an active member of group: " + groupId);
+        }
     }
 }
