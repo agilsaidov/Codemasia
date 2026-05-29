@@ -28,6 +28,9 @@ public class GroupAssignment {
     @JoinColumn(name = "teacher_id", nullable = false)
     private User teacher;
 
+    @Column(name = "name", nullable = false, length = 100)
+    private String title;
+
     @Column(name = "assigned_at", nullable = false)
     private OffsetDateTime assignedAt;
 
