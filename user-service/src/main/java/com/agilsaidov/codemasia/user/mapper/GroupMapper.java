@@ -22,6 +22,7 @@ public interface GroupMapper {
     @Mapping(source = "teacher.userId", target = "teacher.id")
     @Mapping(source = "teacher.name", target = "teacher.name")
     @Mapping(source = "teacher.surname", target = "teacher.surname")
+    @Mapping(source = "active", target = "enabled")
     AssignmentSummary toAssignmentSummary(GroupAssignment assignment);
 
     @Mapping(source = "user.userId", target = "id")

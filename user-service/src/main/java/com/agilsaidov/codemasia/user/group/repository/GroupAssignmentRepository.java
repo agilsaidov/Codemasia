@@ -19,5 +19,10 @@ public interface GroupAssignmentRepository extends JpaRepository<GroupAssignment
     """)
     List<GroupAssignment> findAllWithTeacherByGroupId(@Param("groupId") String groupId);
 
-    Optional<GroupAssignment> findByGroup_GroupIdAndTeacher_UserId(String groupId, Long userId);
+    Optional<GroupAssignment> findByGroup_GroupIdAndTeacher_UserIdAndActiveTrue(String groupId, Long teacherId);
+
+    boolean existsByGroup_GroupIdAndTeacher_UserIdAndActiveTrue(String groupId, Long teacherId);
+
+    boolean existsByGroup_GroupIdAndTeacher_UserIdAndActiveTrueAndAssignmentIdNot(
+            String groupId, Long teacherId, Long assignmentId);
 }

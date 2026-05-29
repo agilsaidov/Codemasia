@@ -8,8 +8,9 @@ import java.time.OffsetDateTime;
 @Getter @Setter
 public class AssignmentSummary {
     private Long assignmentId;
+    private String title;
     private TeacherSummary teacher;
     private OffsetDateTime assignedAt;
     private OffsetDateTime endsAt;
-    private Boolean active;
+    private Boolean enabled;
 }

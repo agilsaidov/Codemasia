@@ -128,17 +128,15 @@ public class GroupService {
                 });
 
         if (!Boolean.TRUE.equals(group.getEnabled())) {
-            log.warn("Group is disabled groupId={}", groupId);
-            throw new BadRequestException("GROUP_DISABLED", "Group with id:" + groupId + " is disabled");
+            log.warn("Teacher access denied for disabled group groupId={}", groupId);
+            throw new NotFoundException("GROUP_NOT_FOUND", "Group with id:" + groupId + " not found");
         }
 
         GroupAssignment assignment = groupAssignmentRepository
-                .findByGroup_GroupIdAndTeacher_UserId(groupId, teacher.getUserId())
+                .findByGroup_GroupIdAndTeacher_UserIdAndActiveTrue(groupId, teacher.getUserId())
                 .orElseThrow(() -> {
-                    log.warn("Teacher assignment not found teacherId={} groupId={}", teacher.getUserId(), groupId);
-                    return new BadRequestException("ASSIGNMENT_NOT_FOUND",
-                            "Teacher with id:" + teacher.getUserId()
-                                    + " not assigned to group with id:" + groupId);
+                    log.warn("Active teacher assignment not found teacherId={} groupId={}", teacher.getUserId(), groupId);
+                    return new NotFoundException("GROUP_NOT_FOUND", "Group with id:" + groupId + " not found");
                 });
 
         TeacherGroupDetailsResponse response = groupMapper.toTeacherGroupResponse(group);

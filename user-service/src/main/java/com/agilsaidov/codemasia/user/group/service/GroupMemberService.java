@@ -46,11 +46,6 @@ public class GroupMemberService {
                             "Group with id:" + groupId + " not found");
                 });
 
-        if (!Boolean.TRUE.equals(group.getEnabled())) {
-            log.warn("Group is disabled groupId={}", groupId);
-            throw new BadRequestException("GROUP_DISABLED", "Group with id:" + groupId + " is disabled");
-        }
-
         List<Long> userIds = request.getUserIds();
         if (userIds.size() != new HashSet<>(userIds).size()) {
             throw new BadRequestException("DUPLICATE_USER_IDS", "Request contains duplicate user ids");

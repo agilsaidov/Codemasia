@@ -7,6 +7,7 @@ import java.time.OffsetDateTime;
 
 @Getter @Setter
 public class TeacherAssignmentSummary {
+    private String title;
     private OffsetDateTime assignedAt;
     private OffsetDateTime endsAt;
     private Boolean active;

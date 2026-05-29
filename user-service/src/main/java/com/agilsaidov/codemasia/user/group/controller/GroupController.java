@@ -1,10 +1,12 @@
 package com.agilsaidov.codemasia.user.group.controller;
 
 import com.agilsaidov.codemasia.user.group.dto.request.AddGroupMemberRequest;
+import com.agilsaidov.codemasia.user.group.dto.request.AssignTeacherRequest;
 import com.agilsaidov.codemasia.user.group.dto.request.CreateGroupRequest;
 import com.agilsaidov.codemasia.user.group.dto.request.UpdateGroupRequest;
 import com.agilsaidov.codemasia.user.group.dto.response.AdminGroupDetailsResponse;
 import com.agilsaidov.codemasia.user.group.dto.response.GroupSummary;
+import com.agilsaidov.codemasia.user.group.service.GroupAssignmentService;
 import com.agilsaidov.codemasia.user.group.service.GroupMemberService;
 import com.agilsaidov.codemasia.user.group.service.GroupService;
 import jakarta.validation.Valid;
@@ -24,6 +26,7 @@ public class GroupController {
 
     private final GroupService groupService;
     private final GroupMemberService groupMemberService;
+    private final GroupAssignmentService groupAssignmentService;
 
 
     @PostMapping
@@ -88,10 +91,26 @@ public class GroupController {
         return ResponseEntity.ok().build();
     }
 
+
+    @PostMapping("/{groupId}/assignments")
+    public ResponseEntity<AdminGroupDetailsResponse> assignTeacher(@PathVariable String groupId,
+                                                                   @Valid @RequestBody AssignTeacherRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(groupAssignmentService.assignTeacher(groupId, request));
+    }
+
+
+    @PatchMapping("/{groupId}/assignments/{assignmentId}/enable")
+    public ResponseEntity<Void> enableAssignment(@PathVariable String groupId,
+                                                 @PathVariable Long assignmentId,
+                                                 @RequestParam boolean enabled) {
+        groupAssignmentService.enableAssignment(groupId, assignmentId, enabled);
+        return ResponseEntity.ok().build();
+    }
+
     //Delete group
     //Add members
     //Remove members
     //Assign teacher
     //Unassign teacher
-    //Activate assignment
 }
