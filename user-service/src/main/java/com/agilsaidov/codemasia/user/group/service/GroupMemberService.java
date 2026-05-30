@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -46,21 +47,21 @@ public class GroupMemberService {
                             "Group with id:" + groupId + " not found");
                 });
 
-        List<Long> userIds = request.getUserIds();
+        List<UUID> userIds = request.getUserIds();
         if (userIds.size() != new HashSet<>(userIds).size()) {
             throw new BadRequestException("DUPLICATE_USER_IDS", "Request contains duplicate user ids");
         }
 
-        Map<Long, User> usersById = userRepository.findAllById(userIds).stream()
+        Map<UUID, User> usersById = userRepository.findAllById(userIds).stream()
                 .collect(Collectors.toMap(User::getUserId, Function.identity()));
 
-        Map<Long, GroupMember> existingMembersByUserId = groupMemberRepository
+        Map<UUID, GroupMember> existingMembersByUserId = groupMemberRepository
                 .findByGroup_GroupIdAndId_UserIdIn(groupId, userIds).stream()
                 .collect(Collectors.toMap(member -> member.getId().getUserId(), Function.identity()));
 
         List<GroupMember> membersToSave = new ArrayList<>();
 
-        for (Long userId : userIds) {
+        for (UUID userId : userIds) {
             User user = usersById.get(userId);
             if (user == null) {
                 log.warn("User not found userId={}", userId);
@@ -105,7 +106,7 @@ public class GroupMemberService {
 
 
     @Transactional
-    public void enableGroupMember(String groupId, Long memberId, boolean enabled) {
+    public void enableGroupMember(String groupId, UUID memberId, boolean enabled) {
         log.info("Member {} in group {} is setting to enabled={}", memberId, groupId, enabled);
 
         Group group = groupRepository.findByIdWithCreator(groupId)
@@ -134,14 +135,14 @@ public class GroupMemberService {
     }
 
     @Transactional(readOnly = true)
-    public boolean isActiveMember(String groupId, Long userId) {
+    public boolean isActiveMember(String groupId, UUID userId) {
         return groupMemberRepository.findById(new GroupMemberId(groupId, userId))
                 .map(member -> Boolean.TRUE.equals(member.getEnabled()))
                 .orElse(false);
     }
 
     @Transactional(readOnly = true)
-    public void requireActiveMember(String groupId, Long userId) {
+    public void requireActiveMember(String groupId, UUID userId) {
         GroupMember member = groupMemberRepository.findById(new GroupMemberId(groupId, userId))
                 .orElseThrow(() -> {
                     log.warn("Member not found groupId={} userId={}", groupId, userId);

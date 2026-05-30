@@ -45,7 +45,7 @@ public class GroupService {
     public AdminGroupDetailsResponse createGroup(CreateGroupRequest request, String keycloakId) {
         log.info("Creating group groupId={} name={} keycloakId={}", request.getGroupId(), request.getName(), keycloakId);
 
-        User creator = userRepository.getUserByKeycloakId(UUID.fromString(keycloakId))
+        User creator = userRepository.getUserByUserId(UUID.fromString(keycloakId))
                 .orElseThrow(() -> {
                     log.warn("Creator user not found keycloakId={}", keycloakId);
                     return new NotFoundException("USER_NOT_FOUND", "Creator user not found");
@@ -81,7 +81,7 @@ public class GroupService {
     }
 
     @Transactional(readOnly = true)
-    public Page<GroupSummary> getGroups(String name, Long creatorId, OffsetDateTime createdAt, Boolean enabled, int page, int size) {
+    public Page<GroupSummary> getGroups(String name, UUID creatorId, OffsetDateTime createdAt, Boolean enabled, int page, int size) {
         log.debug("Fetching groups name={} creatorId={} createdAt={} enabled={} page={} size={}",
                 name, creatorId, createdAt, enabled, page, size);
         Sort sort = Sort.by(Sort.Order.desc("createdAt"), Sort.Order.asc("groupId"));
@@ -96,7 +96,7 @@ public class GroupService {
 
     @Transactional(readOnly = true)
     public Page<TeacherGroupSummary> getTeacherGroups(String keycloakId, int page, int size) {
-        User teacher = userRepository.getUserByKeycloakId(UUID.fromString(keycloakId))
+        User teacher = userRepository.getUserByUserId(UUID.fromString(keycloakId))
                 .orElseThrow(() -> {
                     log.warn("Teacher not found keycloakId={}", keycloakId);
                     return new NotFoundException("USER_NOT_FOUND", "User not found");
@@ -136,7 +136,7 @@ public class GroupService {
     public TeacherGroupDetailsResponse getTeacherGroupById(String keycloakId, String groupId) {
         log.debug("Fetching teacher group keycloakId={} groupId={}", keycloakId, groupId);
 
-        User teacher = userRepository.getUserByKeycloakId(UUID.fromString(keycloakId))
+        User teacher = userRepository.getUserByUserId(UUID.fromString(keycloakId))
                 .orElseThrow(() -> {
                     log.warn("Teacher user not found keycloakId={}", keycloakId);
                     return new NotFoundException("USER_NOT_FOUND", "User with id:" + keycloakId + " not found");

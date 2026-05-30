@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
 public interface GroupAssignmentRepository extends JpaRepository<GroupAssignment, Long> {
@@ -19,10 +20,10 @@ public interface GroupAssignmentRepository extends JpaRepository<GroupAssignment
     """)
     List<GroupAssignment> findAllWithTeacherByGroupId(@Param("groupId") String groupId);
 
-    Optional<GroupAssignment> findByGroup_GroupIdAndTeacher_UserIdAndActiveTrue(String groupId, Long teacherId);
+    Optional<GroupAssignment> findByGroup_GroupIdAndTeacher_UserIdAndActiveTrue(String groupId, UUID teacherId);
 
-    boolean existsByGroup_GroupIdAndTeacher_UserIdAndActiveTrue(String groupId, Long teacherId);
+    boolean existsByGroup_GroupIdAndTeacher_UserIdAndActiveTrue(String groupId, UUID teacherId);
 
     boolean existsByGroup_GroupIdAndTeacher_UserIdAndActiveTrueAndAssignmentIdNot(
-            String groupId, Long teacherId, Long assignmentId);
+            String groupId, UUID teacherId, Long assignmentId);
 }

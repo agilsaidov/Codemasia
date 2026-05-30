@@ -7,9 +7,10 @@ import org.springframework.data.jpa.domain.Specification;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class GroupSpec {
-    public static Specification<Group> withFilters(String name, Long creatorId, OffsetDateTime createdAt, Boolean enabled) {
+    public static Specification<Group> withFilters(String name, UUID creatorId, OffsetDateTime createdAt, Boolean enabled) {
         return (root, criteriaQuery, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
 

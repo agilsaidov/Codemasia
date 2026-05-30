@@ -11,6 +11,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.OffsetDateTime;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
 public interface GroupRepository extends JpaRepository<Group, String>, JpaSpecificationExecutor<Group> {
@@ -33,7 +34,7 @@ public interface GroupRepository extends JpaRepository<Group, String>, JpaSpecif
       AND (ga.endsAt IS NULL OR ga.endsAt > :now)
       ORDER BY ga.group.name ASC
     """)
-    Page<Group> findActiveGroupsByTeacherId(@Param("teacherId") Long teacherId,
+    Page<Group> findActiveGroupsByTeacherId(@Param("teacherId") UUID teacherId,
                                             @Param("now") OffsetDateTime now,
                                             Pageable pageable);
 }

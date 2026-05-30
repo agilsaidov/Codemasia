@@ -9,13 +9,11 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificationExecutor<User> {
+public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificationExecutor<User> {
 
-    Optional<User> getUserByKeycloakId(UUID keycloakId);
+    Optional<User> getUserByUserId(UUID userId);
 
-    Optional<User> getUserByUserId(Long userId);
-
-    boolean existsByEmailAndUserIdNot(String email, Long userId);
+    boolean existsByEmailAndUserIdNot(String email, UUID userId);
 
     boolean existsByEmailOrUsername(String email, String username);
 }

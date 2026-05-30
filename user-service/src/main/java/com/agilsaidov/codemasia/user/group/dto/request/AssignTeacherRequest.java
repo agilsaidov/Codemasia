@@ -8,11 +8,12 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.OffsetDateTime;
+import java.util.UUID;
 
 @Getter @Setter
 public class AssignTeacherRequest {
     @NotNull(message = "Field 'userId' is required")
-    private Long userId;
+    private UUID userId;
 
     @NotBlank(message = "Field 'title' is required")
     @Size(max = 100, message = "Maximum allowed size for 'title' is 100")

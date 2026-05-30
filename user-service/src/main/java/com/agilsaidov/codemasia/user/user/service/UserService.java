@@ -46,13 +46,13 @@ public class UserService {
     public UserResponse getCurrentUser(String keycloakId) {
         log.debug("Fetching current user keycloakId={}", keycloakId);
         UUID uuid = UUID.fromString(keycloakId);
-        User user = userRepository.getUserByKeycloakId(uuid)
+        User user = userRepository.getUserByUserId(uuid)
                 .orElseThrow(() -> new NotFoundException("USER_NOT_FOUND", "User not found"));
         return userMapper.toUserResponse(user);
     }
 
 
-    public UserResponse getUserById(Long userId) {
+    public UserResponse getUserById(UUID userId) {
         User user = userRepository.getUserByUserId(userId)
                 .orElseThrow(() -> new NotFoundException("USER_NOT_FOUND", "User with id: " + userId + " not found"));
 
@@ -78,7 +78,7 @@ public class UserService {
             keycloakAdminService.assignRole(keycloakId, request.getRole());
 
             User user = User.builder()
-                    .keycloakId(keycloakId)
+                    .userId(keycloakId)
                     .username(request.getUsername())
                     .email(request.getEmail())
                     .name(request.getName())
@@ -87,8 +87,9 @@ public class UserService {
                     .enabled(true)
                     .build();
 
-            User saved = userRepository.save(user);
-            log.info("User created successfully userId={} keycloakId={}", saved.getUserId(), keycloakId);
+            User saved = userRepository.saveAndFlush(user);
+
+            log.info("User created successfully userId={}", saved.getUserId());
             return userMapper.toUserResponse(saved);
 
         } catch (RuntimeException e) {
@@ -104,13 +105,13 @@ public class UserService {
     }
 
 
-    public UserResponse updateUser(Long userId, String keycloakId, UpdateUserRequest request) {
+    public UserResponse updateUser(UUID userId, String keycloakId, UpdateUserRequest request) {
         log.info("Updating user userId={}", userId);
         User user = userRepository.getUserByUserId(userId)
                 .orElseThrow(() -> new NotFoundException(
                         "USER_NOT_FOUND", "User with id: " + userId + " not found"));
 
-        if (user.getRole().equals(Role.ADMIN) && !UUID.fromString(keycloakId).equals(user.getKeycloakId())) {
+        if (user.getRole().equals(Role.ADMIN) && !UUID.fromString(keycloakId).equals(user.getUserId())) {
             log.warn("Forbidden: attempt to update another admin userId={}", userId);
             throw new ForbiddenException("FORBIDDEN_ACTION", "Can't update another admin");
         }
@@ -122,7 +123,7 @@ public class UserService {
     }
 
 
-    public void changePassword(Long userId, String keycloakId, ChangePasswordRequest request) {
+    public void changePassword(UUID userId, String keycloakId, ChangePasswordRequest request) {
         log.info("Changing password for userId={}", userId);
         User user = userRepository.getUserByUserId(userId)
                 .orElseThrow(() -> new NotFoundException(
@@ -132,24 +133,24 @@ public class UserService {
             throw new BadRequestException("PASSWORD_MISMATCH", "Password and confirmation do not match");
         }
 
-        if (user.getRole().equals(Role.ADMIN) && !UUID.fromString(keycloakId).equals(user.getKeycloakId())) {
+        if (user.getRole().equals(Role.ADMIN) && !UUID.fromString(keycloakId).equals(user.getUserId())) {
             log.warn("Forbidden: attempt to change another admin's password userId={}", userId);
             throw new ForbiddenException("FORBIDDEN_ACTION", "Can't change another admin's password");
         }
 
-        keycloakAdminService.changePassword(user.getKeycloakId(), request.getPassword());
-        log.info("Password changed userId={} keycloakId={}", userId, user.getKeycloakId());
+        keycloakAdminService.changePassword(user.getUserId(), request.getPassword());
+        log.info("Password changed userId={}", userId);
     }
 
 
     @Transactional
-    public UserResponse changeEmail(Long userId, String keycloakId, ChangeEmailRequest request) {
+    public UserResponse changeEmail(UUID userId, String keycloakId, ChangeEmailRequest request) {
         log.info("Changing email for userId={}", userId);
         User user = userRepository.getUserByUserId(userId)
                 .orElseThrow(() -> new NotFoundException(
                         "USER_NOT_FOUND", "User with id: " + userId + " not found"));
 
-        if (user.getRole().equals(Role.ADMIN) && !UUID.fromString(keycloakId).equals(user.getKeycloakId())) {
+        if (user.getRole().equals(Role.ADMIN) && !UUID.fromString(keycloakId).equals(user.getUserId())) {
             log.warn("Forbidden: attempt to change another admin's email userId={}", userId);
             throw new ForbiddenException("FORBIDDEN_ACTION", "Can't change another admin's email");
         }
@@ -165,27 +166,27 @@ public class UserService {
         String previousEmail = user.getEmail();
 
         try {
-            keycloakAdminService.changeEmail(user.getKeycloakId(), request.getEmail());
+            keycloakAdminService.changeEmail(user.getUserId(), request.getEmail());
             user.setEmail(request.getEmail());
-            userRepository.save(user);
+            userRepository.saveAndFlush(user);
         } catch (RuntimeException e) {
             log.error("Failed to complete email change for userId={}", userId);
             try {
-                keycloakAdminService.changeEmail(user.getKeycloakId(), previousEmail);
-                log.debug("Email change rollback completed keycloakId={}", user.getKeycloakId());
+                keycloakAdminService.changeEmail(user.getUserId(), previousEmail);
+                log.debug("Email change rollback completed keycloakId={}", user.getUserId());
             } catch (Exception rollbackEx) {
-                log.error("Email change rollback failed for user keycloakId={}: {}", user.getKeycloakId(), rollbackEx.getMessage());
+                log.error("Email change rollback failed for user keycloakId={}: {}", user.getUserId(), rollbackEx.getMessage());
             }
             throw e;
         }
 
-        log.info("Email changed userId={} keycloakId={}", userId, user.getKeycloakId());
+        log.info("Email changed userId={} keycloakId={}", userId, user.getUserId());
         return userMapper.toUserResponse(user);
     }
 
 
     @Transactional
-    public UserResponse changeRole(Long userId, ChangeRoleRequest request) {
+    public UserResponse changeRole(UUID userId, ChangeRoleRequest request) {
         Role role = request.getRole();
         log.info("Changing role userId={} to={}", userId, role);
         User user = userRepository.getUserByUserId(userId)
@@ -204,16 +205,16 @@ public class UserService {
         }
 
         try{
-            keycloakAdminService.assignRole(user.getKeycloakId(), role);
+            keycloakAdminService.assignRole(user.getUserId(), role);
             user.setRole(role);
-            userRepository.save(user);
+            userRepository.saveAndFlush(user);
         }catch (RuntimeException e){
             log.error("Failed to complete role change for userId={}", userId);
             try{
-                keycloakAdminService.assignRole(user.getKeycloakId(), previousRole);
-                log.debug("Role change rollback completed keycloakId={}", user.getKeycloakId());
+                keycloakAdminService.assignRole(user.getUserId(), previousRole);
+                log.debug("Role change rollback completed keycloakId={}", user.getUserId());
             }catch (Exception rollbackEx) {
-                log.error("Keycloak 'user role' rollback failed for user keycloakId={}", user.getKeycloakId());
+                log.error("Keycloak 'user role' rollback failed for user keycloakId={}", user.getUserId());
             }
             throw e;
         }
@@ -224,13 +225,13 @@ public class UserService {
 
 
     @Transactional
-    public void enableUser(Long userId, String keycloakId, boolean enabled) {
+    public void enableUser(UUID userId, String keycloakId, boolean enabled) {
         log.info("Setting enabled={} for userId={}", enabled, userId);
         User user = userRepository.getUserByUserId(userId)
                 .orElseThrow(() -> new NotFoundException(
                         "USER_NOT_FOUND", "User with id: " + userId + " not found"));
 
-        if(user.getRole().equals(Role.ADMIN) && !UUID.fromString(keycloakId).equals(user.getKeycloakId())) {
+        if(user.getRole().equals(Role.ADMIN) && !UUID.fromString(keycloakId).equals(user.getUserId())) {
             log.warn("Forbidden: attempt to enable/disable another admin userId={}", userId);
             throw new ForbiddenException("FORBIDDEN_ACTION", "Can't enable or disable another admin");
         }
@@ -238,19 +239,19 @@ public class UserService {
         boolean previousEnabled = user.getEnabled();
 
         try{
-            keycloakAdminService.enableUser(user.getKeycloakId(), enabled);
+            keycloakAdminService.enableUser(user.getUserId(), enabled);
             user.setEnabled(enabled);
-            userRepository.save(user);
+            userRepository.saveAndFlush(user);
             log.info("User enabled status updated userId={} enabled={}", userId, enabled);
 
         }catch (RuntimeException e){
-            log.error("Failed to complete enable process, rolling back Keycloak changes for user keycloakId={}", user.getKeycloakId());
+            log.error("Failed to complete enable process, rolling back Keycloak changes for user keycloakId={}", user.getUserId());
             try {
-                keycloakAdminService.enableUser(user.getKeycloakId(), previousEnabled);
-                log.debug("Enable rollback completed keycloakId={}", user.getKeycloakId());
+                keycloakAdminService.enableUser(user.getUserId(), previousEnabled);
+                log.debug("Enable rollback completed keycloakId={}", user.getUserId());
 
             } catch (Exception rollbackEx) {
-                log.error("Keycloak 'enable user' rollback failed for user keycloakId={}: {}", user.getKeycloakId(), rollbackEx.getMessage());
+                log.error("Keycloak 'enable user' rollback failed for user keycloakId={}: {}", user.getUserId(), rollbackEx.getMessage());
             }
             throw e;
         }

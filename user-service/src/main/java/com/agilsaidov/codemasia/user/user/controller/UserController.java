@@ -16,6 +16,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
+
 
 @RestController
 @RequestMapping("/api/users")
@@ -48,7 +50,7 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<UserResponse> getUser(@PathVariable("id") Long userId){
+    public ResponseEntity<UserResponse> getUser(@PathVariable("id") UUID userId){
         return ResponseEntity.ok(userService.getUserById(userId));
     }
 
@@ -58,7 +60,7 @@ public class UserController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<UserResponse> updateUser(@PathVariable(name = "id") Long userId,
+    public ResponseEntity<UserResponse> updateUser(@PathVariable(name = "id") UUID userId,
                                                    @RequestHeader("X-User-Id") String keycloakId,
                                                    @Valid @RequestBody UpdateUserRequest request){
         return ResponseEntity.ok(userService.updateUser(userId, keycloakId, request));
@@ -66,7 +68,7 @@ public class UserController {
 
 
     @PatchMapping("/{id}/change-password")
-    public ResponseEntity<Void> changePassword(@PathVariable(name = "id") Long userId,
+    public ResponseEntity<Void> changePassword(@PathVariable(name = "id") UUID userId,
                                                @RequestHeader("X-User-Id") String keycloakId,
                                                @Valid @RequestBody ChangePasswordRequest request){
         userService.changePassword(userId, keycloakId, request);
@@ -74,20 +76,20 @@ public class UserController {
     }
 
     @PatchMapping("/{id}/change-email")
-    public ResponseEntity<UserResponse> changeEmail(@PathVariable(name = "id") Long userId,
+    public ResponseEntity<UserResponse> changeEmail(@PathVariable(name = "id") UUID userId,
                                                     @RequestHeader("X-User-Id") String keycloakId,
                                                     @Valid @RequestBody ChangeEmailRequest request) {
         return ResponseEntity.ok(userService.changeEmail(userId, keycloakId, request));
     }
 
     @PatchMapping("/{id}/change-role")
-    public ResponseEntity<UserResponse> changeRole(@PathVariable(name = "id") Long userId,
+    public ResponseEntity<UserResponse> changeRole(@PathVariable(name = "id") UUID userId,
                                                    @Valid @RequestBody ChangeRoleRequest request) {
         return ResponseEntity.ok(userService.changeRole(userId, request));
     }
 
     @PatchMapping("/{id}/enable")
-    public ResponseEntity<Void> enableUser(@PathVariable(name = "id") Long userId,
+    public ResponseEntity<Void> enableUser(@PathVariable(name = "id") UUID userId,
                                            @RequestHeader("X-User-Id") String keycloakId,
                                            @RequestParam boolean enabled) {
         userService.enableUser(userId, keycloakId ,enabled);

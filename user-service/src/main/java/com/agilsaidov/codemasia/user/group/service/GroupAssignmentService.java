@@ -18,6 +18,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.UUID;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -38,7 +40,7 @@ public class GroupAssignmentService {
                             "Group with id: " + groupId + " not found");
                 });
 
-        Long teacherId = request.getUserId();
+        UUID teacherId = request.getUserId();
 
         User teacher = userRepository.findById(teacherId)
                 .orElseThrow(() -> {

@@ -9,11 +9,12 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.UUID;
 
 @Repository
 public interface GroupMemberRepository extends JpaRepository<GroupMember, GroupMemberId> {
 
-    List<GroupMember> findByGroup_GroupIdAndId_UserIdIn(String groupId, Collection<Long> userIds);
+    List<GroupMember> findByGroup_GroupIdAndId_UserIdIn(String groupId, Collection<UUID> userIds);
 
     @Query("""
             SELECT gm.id.groupId, COUNT(gm)

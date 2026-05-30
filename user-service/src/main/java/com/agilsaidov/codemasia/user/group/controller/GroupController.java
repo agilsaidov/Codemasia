@@ -20,6 +20,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.OffsetDateTime;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/groups")
@@ -40,7 +41,7 @@ public class GroupController {
 
     @GetMapping
     public ResponseEntity<Page<GroupSummary>> getGroups(@RequestParam(required = false) String name,
-                                                        @RequestParam(required = false) Long creatorId,
+                                                        @RequestParam(required = false) UUID creatorId,
                                                         @RequestParam(required = false) OffsetDateTime createdAt,
                                                         @RequestParam(required = false) Boolean enabled,
                                                         @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page parameter cannot be negative") int page,
@@ -95,7 +96,7 @@ public class GroupController {
 
     @PatchMapping("/{groupId}/members/{memberId}/enable")
     public ResponseEntity<Void> enableGroupMember(@PathVariable String groupId,
-                                                                       @PathVariable Long memberId,
+                                                                       @PathVariable UUID memberId,
                                                                        @RequestParam boolean enabled) {
         groupMemberService.enableGroupMember(groupId, memberId, enabled);
         return ResponseEntity.ok().build();

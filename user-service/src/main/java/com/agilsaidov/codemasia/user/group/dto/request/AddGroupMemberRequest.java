@@ -6,10 +6,11 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.util.List;
+import java.util.UUID;
 
 @Getter @Setter
 public class AddGroupMemberRequest {
     @NotNull(message = "Field 'userIds' is required")
     @NotEmpty(message = "Field 'userIds' must not be empty")
-    private List<Long> userIds;
+    private List<UUID> userIds;
 }

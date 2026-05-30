@@ -18,12 +18,8 @@ import java.util.UUID;
 @Table(name = "users")
 public class User {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
-    private Long userId;
-
-    @Column(name = "keycloak_id", nullable = false, unique = true)
-    private UUID keycloakId;
+    private UUID userId;
 
     @Column(name = "username",  nullable = false, unique = true)
     private String username;
