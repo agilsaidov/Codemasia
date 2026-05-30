@@ -21,6 +21,13 @@ services:
         condition: service_healthy
     networks:
       - codemasia-network
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: 1g
+        reservations:
+          memory: 512m
 
   keycloak-db:
     image: postgres:16
@@ -38,6 +45,13 @@ services:
       retries: 5
     networks:
       - codemasia-network
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512m
+        reservations:
+          memory: 256m
 
   # ─────────────────────────────────────────────
   # USER SERVICE DB
@@ -60,6 +74,13 @@ services:
       retries: 5
     networks:
       - codemasia-network
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512m
+        reservations:
+          memory: 256m
 
   # ─────────────────────────────────────────────
   # EXAM SERVICE DB
@@ -82,6 +103,13 @@ services:
       retries: 5
     networks:
       - codemasia-network
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512m
+        reservations:
+          memory: 256m
 
   # ─────────────────────────────────────────────
   # SUBMISSION SERVICE DB
@@ -104,6 +132,13 @@ services:
       retries: 5
     networks:
       - codemasia-network
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512m
+        reservations:
+          memory: 256m
 
   # ─────────────────────────────────────────────
   # REDIS
@@ -123,6 +158,13 @@ services:
       retries: 5
     networks:
       - codemasia-network
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256m
+        reservations:
+          memory: 128m
 
   # ─────────────────────────────────────────────
   # KAFKA
@@ -135,6 +177,13 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
     networks:
       - codemasia-network
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512m
+        reservations:
+          memory: 256m
 
   kafka:
     image: confluentinc/cp-kafka:7.6.0
@@ -157,6 +206,138 @@ services:
       retries: 5
     networks:
       - codemasia-network
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: 1g
+        reservations:
+          memory: 512m
+
+  # ─────────────────────────────────────────────
+  # JUDGE0 — CODE EXECUTION ENGINE
+  # ─────────────────────────────────────────────
+  # Dedicated Postgres + Redis so Judge0's heavy queue/usage
+  # never interferes with the application's own redis/databases.
+  judge0-db:
+    image: postgres:16
+    container_name: codemasia-judge0-db
+    environment:
+      POSTGRES_DB: ${JUDGE0_DB_NAME}
+      POSTGRES_USER: ${JUDGE0_DB_USER}
+      POSTGRES_PASSWORD: ${JUDGE0_DB_PASSWORD}
+    volumes:
+      - judge0-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${JUDGE0_DB_USER} -d ${JUDGE0_DB_NAME}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - codemasia-network
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512m
+        reservations:
+          memory: 256m
+
+  judge0-redis:
+    image: redis:7.2-alpine
+    container_name: codemasia-judge0-redis
+    command: redis-server --requirepass ${JUDGE0_REDIS_PASSWORD}
+    healthcheck:
+      test: [ "CMD", "redis-cli", "-a", "${JUDGE0_REDIS_PASSWORD}", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - codemasia-network
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256m
+        reservations:
+          memory: 128m
+
+  judge0-server:
+    image: judge0/judge0:1.13.1
+    container_name: codemasia-judge0-server
+    # isolate (the sandbox) requires privileged access to cgroups.
+    privileged: true
+    restart: unless-stopped
+    ports:
+      - "2358:2358"
+    environment:
+      POSTGRES_HOST: judge0-db
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${JUDGE0_DB_NAME}
+      POSTGRES_USER: ${JUDGE0_DB_USER}
+      POSTGRES_PASSWORD: ${JUDGE0_DB_PASSWORD}
+      REDIS_HOST: judge0-redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${JUDGE0_REDIS_PASSWORD}
+      # API auth: callers must send these tokens (X-Auth-Token / X-Auth-User).
+      # Judge0 has no other access control, so this gates code execution.
+      AUTHN_TOKEN: ${JUDGE0_AUTHN_TOKEN}
+      AUTHZ_TOKEN: ${JUDGE0_AUTHZ_TOKEN}
+      # Allow large bursts (e.g. everyone submitting near a deadline) to queue
+      # instead of being rejected with HTTP 429.
+      MAX_QUEUE_SIZE: 2000
+    depends_on:
+      judge0-db:
+        condition: service_healthy
+      judge0-redis:
+        condition: service_healthy
+    networks:
+      - codemasia-network
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: 768m
+        reservations:
+          memory: 256m
+
+  judge0-workers:
+    image: judge0/judge0:1.13.1
+    container_name: codemasia-judge0-workers
+    command: [ "./scripts/workers" ]
+    # isolate (the sandbox) requires privileged access to cgroups.
+    privileged: true
+    restart: unless-stopped
+    environment:
+      # Submissions executed concurrently. Kept low for local dev;
+      # raise for load testing / production.
+      COUNT: 2
+      POSTGRES_HOST: judge0-db
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${JUDGE0_DB_NAME}
+      POSTGRES_USER: ${JUDGE0_DB_USER}
+      POSTGRES_PASSWORD: ${JUDGE0_DB_PASSWORD}
+      REDIS_HOST: judge0-redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${JUDGE0_REDIS_PASSWORD}
+    depends_on:
+      judge0-server:
+        condition: service_started
+      judge0-db:
+        condition: service_healthy
+      judge0-redis:
+        condition: service_healthy
+    networks:
+      - codemasia-network
+    # This container actually runs untrusted submissions, so it gets
+    # the largest budget. Keep memory >= COUNT * max per-submission memory_limit.
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 1g
+        reservations:
+          memory: 512m
 
 # ─────────────────────────────────────────────
 # VOLUMES
@@ -167,6 +348,7 @@ volumes:
   exam-db-data:
   submission-db-data:
   redis-data:
+  judge0-db-data:
 
 # ─────────────────────────────────────────────
 # NETWORKS

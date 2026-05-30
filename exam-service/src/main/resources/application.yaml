@@ -4,3 +4,11 @@ server:
 spring:
   application:
     name: exam-service
+
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
+
+  datasource:
+    url: ${EXAM_DB_URL}
+    username: ${EXAM_DB_USER}
+    password: ${EXAM_DB_PASSWORD}
