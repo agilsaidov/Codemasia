@@ -1,0 +1,2 @@
+ALTER TABLE exams
+ALTER COLUMN description TYPE VARCHAR(500);
