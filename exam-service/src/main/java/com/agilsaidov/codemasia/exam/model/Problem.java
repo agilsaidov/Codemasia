@@ -1,6 +1,17 @@
 package com.agilsaidov.codemasia.exam.model;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -39,6 +50,10 @@ public class Problem {
 
     @Column(name = "position", nullable = false)
     private Integer position = 0;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "difficulty", length = 10)
+    private Difficulty difficulty;
 
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
