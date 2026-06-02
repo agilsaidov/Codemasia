@@ -34,6 +34,9 @@ public class ExamSession {
     @JoinColumn(name = "exam_id", nullable = false)
     private Exam exam;
 
+    @Column(name = "exam_title", nullable = false, length = 200)
+    private String examTitle;
+
     @Column(name = "group_id", nullable = false, length = 20)
     private String groupId;
 
@@ -48,6 +51,10 @@ public class ExamSession {
 
     @Column(name = "enabled", nullable = false)
     private Boolean enabled = true;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 10)
+    private SessionStatus status = SessionStatus.SCHEDULED;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "selection_mode", nullable = false, length = 10)
@@ -112,6 +119,12 @@ public class ExamSession {
         }
         if (cheatBlockMode == null) {
             cheatBlockMode = CheatBlockMode.SUBMIT_BLOCKED;
+        }
+        if (status == null) {
+            status = SessionStatus.SCHEDULED;
+        }
+        if (examTitle == null) {
+            examTitle = "";
         }
         this.createdAt = OffsetDateTime.now();
         this.updatedAt = OffsetDateTime.now();
