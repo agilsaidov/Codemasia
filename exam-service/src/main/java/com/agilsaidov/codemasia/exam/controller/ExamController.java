@@ -1,7 +1,10 @@
 package com.agilsaidov.codemasia.exam.controller;
 
 import com.agilsaidov.codemasia.exam.dto.request.CreateExamRequest;
+import com.agilsaidov.codemasia.exam.dto.response.AdminExamSummary;
+import com.agilsaidov.codemasia.exam.dto.response.DeleteExamResponse;
 import com.agilsaidov.codemasia.exam.dto.response.TeacherExamDetailsResponse;
+import com.agilsaidov.codemasia.exam.dto.response.TeacherExamSummary;
 import com.agilsaidov.codemasia.exam.service.ExamService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
@@ -28,12 +31,42 @@ public class ExamController {
         return ResponseEntity.status(HttpStatus.CREATED).body(examService.createExam(request, creatorId));
     }
 
+
+    @GetMapping
+    public ResponseEntity<Page<AdminExamSummary>> getExams(@RequestParam(required = false) String title,
+                                                           @RequestParam(required = false) UUID creatorId,
+                                                           @RequestParam(required = false) Boolean enabled,
+                                                           @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page parameter cannot be negative") int page,
+                                                           @RequestParam(defaultValue = "10") @Min(value = 1, message = "Size parameter must be at least 1") int size) {
+        return ResponseEntity.ok(examService.getExams(title, creatorId, enabled, page, size));
+    }
+
+
     @GetMapping("/my")
-    public ResponseEntity<Page<TeacherExamDetailsResponse>> getTeacherExams(@RequestHeader("X-User-Id") UUID creatorId,
-                                                                            @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page parameter cannot be negative") int page,
-                                                                            @RequestParam(defaultValue = "10") @Min(value = 1, message = "Size parameter must be at least 1") int size) {
+    public ResponseEntity<Page<TeacherExamSummary>> getTeacherExams(@RequestHeader("X-User-Id") UUID creatorId,
+                                                                    @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page parameter cannot be negative") int page,
+                                                                    @RequestParam(defaultValue = "10") @Min(value = 1, message = "Size parameter must be at least 1") int size) {
         return ResponseEntity.ok(examService.getTeacherExams(creatorId, page, size));
     }
+
+
+    @GetMapping("/{examId}")
+    public ResponseEntity<?> getExamById(@RequestHeader("X-User-Id") UUID userId,
+                                         @RequestHeader("X-User-Role") String role,
+                                         @PathVariable String examId) {
+        if ("ADMIN".equals(role)) {
+            return ResponseEntity.ok(examService.getAdminExamDetails(examId));
+        }
+        return ResponseEntity.ok(examService.getTeacherExamDetails(userId, examId));
+    }
+
+
+    @DeleteMapping("/{examId}")
+    public ResponseEntity<DeleteExamResponse> deleteExam(@RequestHeader("X-User-Id") UUID creatorId,
+                                                         @PathVariable String examId) {
+        return ResponseEntity.ok(examService.deleteExam(creatorId, examId));
+    }
+
 
     @PatchMapping("/{examId}/publish")
     public ResponseEntity<Void> toggleExamPublishReady(@RequestHeader("X-User-Id") UUID creatorId,
@@ -43,11 +76,11 @@ public class ExamController {
         return ResponseEntity.ok().build();
     }
 
+
     @PatchMapping("/{examId}/enable")
-    public ResponseEntity<Void> enableExam(@RequestHeader("X-User-Id") UUID creatorId,
-                                           @PathVariable String examId,
+    public ResponseEntity<Void> enableExam(@PathVariable String examId,
                                            @RequestParam boolean enabled) {
-        examService.enableExam(creatorId, examId, enabled);
+        examService.enableExam(examId, enabled);
         return ResponseEntity.ok().build();
     }
 }

@@ -4,14 +4,14 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.OffsetDateTime;
+import java.util.UUID;
 
 @Getter @Setter
-public class TeacherExamDetailsResponse {
+public class AdminExamSummary {
     private String examId;
     private String title;
-    private String description;
+    private Boolean enabled;
     private Boolean publishReady;
+    private UUID creatorId;
     private OffsetDateTime createdAt;
-    private OffsetDateTime updatedAt;
-    private int problemCount;
 }
