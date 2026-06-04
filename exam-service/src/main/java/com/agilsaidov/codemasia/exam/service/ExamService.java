@@ -1,6 +1,7 @@
 package com.agilsaidov.codemasia.exam.service;
 
 import com.agilsaidov.codemasia.exam.dto.request.CreateExamRequest;
+import com.agilsaidov.codemasia.exam.dto.request.UpdateExamRequest;
 import com.agilsaidov.codemasia.exam.dto.response.AdminExamDetailsResponse;
 import com.agilsaidov.codemasia.exam.dto.response.AdminExamSummary;
 import com.agilsaidov.codemasia.exam.dto.response.DeleteExamResponse;
@@ -87,10 +88,34 @@ public class ExamService {
     public AdminExamDetailsResponse getAdminExamDetails(String examId) {
         log.debug("Admin fetching details for exam={}", examId);
         Exam exam = getExam(examId);
-        AdminExamDetailsResponse response = examMapper.toAdminExamDetailsResponse(exam);
-        response.setProblemCount(problemRepository.countByExam_ExamId(examId));
-        response.setSessionCount(examSessionService.countByExamId(examId));
-        return response;
+        return enrichAdminExamDetails(exam);
+    }
+
+
+    @Transactional
+    public AdminExamDetailsResponse updateAdminExam(String examId, UpdateExamRequest request) {
+        Exam exam = getExam(examId);
+
+        exam.setTitle(request.getTitle());
+        exam.setDescription(request.getDescription());
+        exam.setPublishReady(false);
+        examRepository.save(exam);
+
+        log.info("Admin updated exam={}", examId);
+        return enrichAdminExamDetails(exam);
+    }
+
+
+    @Transactional
+    public TeacherExamDetailsResponse updateTeacherExam(UUID teacherId, String examId, UpdateExamRequest request) {
+        Exam exam = getOwnedEnabledExam(teacherId, examId);
+
+        exam.setTitle(request.getTitle());
+        exam.setDescription(request.getDescription());
+        examRepository.save(exam);
+
+        log.info("Teacher={} updated exam={}", teacherId, examId);
+        return enrichTeacherDetails(exam);
     }
 
 
@@ -156,6 +181,13 @@ public class ExamService {
     private TeacherExamDetailsResponse enrichTeacherDetails(Exam exam) {
         TeacherExamDetailsResponse response = examMapper.toTeacherExamDetailsResponse(exam);
         response.setProblemCount(problemRepository.countByExam_ExamId(exam.getExamId()));
+        return response;
+    }
+
+    private AdminExamDetailsResponse enrichAdminExamDetails(Exam exam) {
+        AdminExamDetailsResponse response = examMapper.toAdminExamDetailsResponse(exam);
+        response.setProblemCount(problemRepository.countByExam_ExamId(exam.getExamId()));
+        response.setSessionCount(examSessionService.countByExamId(exam.getExamId()));
         return response;
     }
 

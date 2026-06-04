@@ -1,6 +1,7 @@
 package com.agilsaidov.codemasia.exam.controller;
 
 import com.agilsaidov.codemasia.exam.dto.request.CreateExamRequest;
+import com.agilsaidov.codemasia.exam.dto.request.UpdateExamRequest;
 import com.agilsaidov.codemasia.exam.dto.response.AdminExamSummary;
 import com.agilsaidov.codemasia.exam.dto.response.DeleteExamResponse;
 import com.agilsaidov.codemasia.exam.dto.response.TeacherExamDetailsResponse;
@@ -58,6 +59,20 @@ public class ExamController {
             return ResponseEntity.ok(examService.getAdminExamDetails(examId));
         }
         return ResponseEntity.ok(examService.getTeacherExamDetails(userId, examId));
+    }
+
+
+    @PutMapping("/{examId}")
+    public ResponseEntity<?> updateExam(@Valid @RequestBody UpdateExamRequest request,
+                                        @RequestHeader("X-User-Id") UUID creatorId,
+                                        @RequestHeader("X-User-Role") String role,
+                                        @PathVariable String examId) {
+
+        if("ADMIN".equals(role)){
+            return ResponseEntity.ok(examService.updateAdminExam(examId, request));
+        }
+
+        return ResponseEntity.ok(examService.updateTeacherExam(creatorId, examId, request));
     }
 
 
