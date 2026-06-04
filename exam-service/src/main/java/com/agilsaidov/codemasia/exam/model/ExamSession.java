@@ -93,39 +93,6 @@ public class ExamSession {
 
     @PrePersist
     public void prePersist() {
-        if (selectionMode == null) {
-            selectionMode = SelectionMode.RANDOM;
-        }
-        if (useDifficultyTiers == null) {
-            useDifficultyTiers = false;
-        }
-        if (questionQuota == null) {
-            questionQuota = 0;
-        }
-        if (easyQuota == null) {
-            easyQuota = 0;
-        }
-        if (mediumQuota == null) {
-            mediumQuota = 0;
-        }
-        if (hardQuota == null) {
-            hardQuota = 0;
-        }
-        if (maxQuestionChanges == null) {
-            maxQuestionChanges = 0;
-        }
-        if (maxCheatEvents == null) {
-            maxCheatEvents = 0;
-        }
-        if (cheatBlockMode == null) {
-            cheatBlockMode = CheatBlockMode.SUBMIT_BLOCKED;
-        }
-        if (status == null) {
-            status = SessionStatus.SCHEDULED;
-        }
-        if (examTitle == null) {
-            examTitle = "";
-        }
         this.createdAt = OffsetDateTime.now();
         this.updatedAt = OffsetDateTime.now();
     }

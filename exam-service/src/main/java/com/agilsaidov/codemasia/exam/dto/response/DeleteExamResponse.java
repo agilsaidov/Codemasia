@@ -8,6 +8,4 @@ public class DeleteExamResponse {
     private String examId;
     private boolean deleted;
     private int sessionsCancelled;
-    private int sessionsClosing;
-    private int sessionsUnchanged;
 }
