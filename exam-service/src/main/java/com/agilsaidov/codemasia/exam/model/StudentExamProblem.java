@@ -42,9 +42,6 @@ public class StudentExamProblem {
     @Column(name = "difficulty", length = 10)
     private Difficulty difficulty;
 
-    @Column(name = "position", nullable = false)
-    private Integer position;
-
     @Column(name = "paper_version", nullable = false)
     private Integer paperVersion;
 

@@ -39,17 +39,14 @@ public class Problem {
     @Column(name = "statement", nullable = false)
     private String statement;
 
-    @Column(name = "time_limit_ms",  nullable = false)
+    @Column(name = "time_limit_ms", nullable = false)
     private Integer timeLimitMs = 1000;
 
     @Column(name = "memory_limit_kb",  nullable = false)
     private Integer memoryLimitKb = 128000;
 
-    @Column(name = "points",   nullable = false)
+    @Column(name = "points", nullable = false)
     private Integer point = 100;
-
-    @Column(name = "position", nullable = false)
-    private Integer position = 0;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "difficulty", length = 10)

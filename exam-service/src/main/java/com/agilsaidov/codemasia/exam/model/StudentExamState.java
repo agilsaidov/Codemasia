@@ -66,21 +66,6 @@ public class StudentExamState {
 
     @PrePersist
     public void prePersist() {
-        if (changeCount == null) {
-            changeCount = 0;
-        }
-        if (cheatCount == null) {
-            cheatCount = 0;
-        }
-        if (hasSubmitted == null) {
-            hasSubmitted = false;
-        }
-        if (blocked == null) {
-            blocked = false;
-        }
-        if (paperVersion == null) {
-            paperVersion = 1;
-        }
         createdAt = OffsetDateTime.now();
         updatedAt = OffsetDateTime.now();
     }
