@@ -41,6 +41,8 @@ public class ExamService {
 
     @Transactional
     public TeacherExamDetailsResponse createExam(CreateExamRequest request, UUID creatorId) {
+        log.debug("Creating exam by creator={}", creatorId);
+
         String examId = generateUniqueExamId();
 
         Exam exam = Exam.builder()
@@ -61,39 +63,48 @@ public class ExamService {
         log.debug("Fetching exams for creator={} page={} size={}", creatorId, page, size);
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
 
-        return examRepository.findAllByCreatorIdAndEnabledTrue(creatorId, pageable)
+        Page<TeacherExamSummary> result = examRepository.findAllByCreatorIdAndEnabledTrue(creatorId, pageable)
                 .map(examMapper::toTeacherExamSummary);
+        log.debug("Fetched {} exam(s) for creator={}", result.getTotalElements(), creatorId);
+        return result;
     }
 
 
     @Transactional(readOnly = true)
     public Page<AdminExamSummary> getExams(String title, UUID creatorId, Boolean enabled, int page, int size) {
-        log.debug("Admin exam list: title={} creatorId={} enabled={} page={} size={}", title, creatorId, enabled, page, size);
+        log.debug("Fetching exams (admin): title={} creatorId={} enabled={} page={} size={}", title, creatorId, enabled, page, size);
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
 
-        return examRepository.findAll(ExamSpec.withFilters(title, creatorId, enabled), pageable)
+        Page<AdminExamSummary> result = examRepository.findAll(ExamSpec.withFilters(title, creatorId, enabled), pageable)
                 .map(examMapper::toAdminExamSummary);
+        log.debug("Fetched {} exam(s) (admin): title={} creatorId={} enabled={}", result.getTotalElements(), title, creatorId, enabled);
+        return result;
     }
 
 
     @Transactional(readOnly = true)
     public TeacherExamDetailsResponse getTeacherExamDetails(UUID creatorId, String examId) {
-        log.debug("Teacher={} fetching details for exam={}", creatorId, examId);
+        log.debug("Fetching exam={} details for teacher={}", examId, creatorId);
         Exam exam = getOwnedEnabledExam(creatorId, examId);
-        return enrichTeacherDetails(exam);
+        TeacherExamDetailsResponse response = enrichTeacherDetails(exam);
+        log.debug("Fetched exam={} details for teacher={}", examId, creatorId);
+        return response;
     }
 
 
     @Transactional(readOnly = true)
     public AdminExamDetailsResponse getAdminExamDetails(String examId) {
-        log.debug("Admin fetching details for exam={}", examId);
+        log.debug("Fetching exam={} details (admin)", examId);
         Exam exam = getExam(examId);
-        return enrichAdminExamDetails(exam);
+        AdminExamDetailsResponse response = enrichAdminExamDetails(exam);
+        log.debug("Fetched exam={} details (admin)", examId);
+        return response;
     }
 
 
     @Transactional
     public AdminExamDetailsResponse updateAdminExam(String examId, UpdateExamRequest request) {
+        log.debug("Updating exam={} (admin)", examId);
         Exam exam = getExam(examId);
 
         exam.setTitle(request.getTitle());
@@ -101,34 +112,36 @@ public class ExamService {
         exam.setPublishReady(false);
         examRepository.save(exam);
 
-        log.info("Admin updated exam={}", examId);
+        log.info("Exam={} updated (admin)", examId);
         return enrichAdminExamDetails(exam);
     }
 
 
     @Transactional
     public TeacherExamDetailsResponse updateTeacherExam(UUID teacherId, String examId, UpdateExamRequest request) {
+        log.debug("Updating exam={} by teacher={}", examId, teacherId);
         Exam exam = getOwnedEnabledExam(teacherId, examId);
 
         exam.setTitle(request.getTitle());
         exam.setDescription(request.getDescription());
         examRepository.save(exam);
 
-        log.info("Teacher={} updated exam={}", teacherId, examId);
+        log.info("Exam={} updated by teacher={}", examId, teacherId);
         return enrichTeacherDetails(exam);
     }
 
 
     @Transactional
     public DeleteExamResponse deleteExam(UUID creatorId, String examId) {
+        log.debug("Deleting exam={} by teacher={}", examId, creatorId);
         Exam exam = getOwnedEnabledExam(creatorId, examId);
-        log.info("Teacher={} requested delete for exam={}", creatorId, examId);
         return softDeleteExam(exam);
     }
 
 
     @Transactional
     public void enableExam(String examId, boolean enabled) {
+        log.debug("Setting enabled={} for exam={} (admin)", enabled, examId);
         Exam exam = getExam(examId);
 
         if (enabled) {
@@ -154,6 +167,7 @@ public class ExamService {
 
     @Transactional
     public void toggleExamPublishReady(UUID creatorId, String examId, boolean publishReady) {
+        log.debug("Toggling publishReady={} for exam={} by creator={}", publishReady, examId, creatorId);
         Exam exam = getOwnedEnabledExam(creatorId, examId);
         exam.setPublishReady(publishReady);
         examRepository.save(exam);
@@ -195,10 +209,12 @@ public class ExamService {
         Exam exam = getExam(examId);
 
         if (!creatorId.equals(exam.getCreatorId())) {
+            log.warn("Access denied: creator={} is not owner of exam={}", creatorId, examId);
             throw new ForbiddenException("FORBIDDEN_ACTION", "You are not allowed to access this resource");
         }
 
         if (!Boolean.TRUE.equals(exam.getEnabled())) {
+            log.warn("Access denied: exam={} is disabled, requested by creator={}", examId, creatorId);
             throw new NotFoundException(
                     "EXAM_NOT_FOUND",
                     "Exam with id " + examId + " not found"
@@ -210,10 +226,12 @@ public class ExamService {
 
     private Exam getExam(String examId) {
         return examRepository.findById(examId)
-                .orElseThrow(() -> new NotFoundException(
-                        "EXAM_NOT_FOUND",
-                        "Exam with id " + examId + " not found")
-                );
+                .orElseThrow(() -> {
+                    log.warn("Exam={} not found", examId);
+                    return new NotFoundException(
+                            "EXAM_NOT_FOUND",
+                            "Exam with id " + examId + " not found");
+                });
     }
 
     private String generateUniqueExamId() {
@@ -224,6 +242,7 @@ public class ExamService {
             }
             log.warn("Exam ID collision on attempt {}/{}: [{}]", attempt, ID_GEN_MAX_ATTEMPTS, examId);
         }
+        log.error("Failed to generate unique exam ID after {} attempts", ID_GEN_MAX_ATTEMPTS);
         throw new IllegalStateException(
                 "Could not generate a unique exam ID after " + ID_GEN_MAX_ATTEMPTS + " attempts"
         );
