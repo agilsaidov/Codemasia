@@ -2,13 +2,17 @@ package com.agilsaidov.codemasia.exam.controller;
 
 import com.agilsaidov.codemasia.exam.dto.request.CreateProblemRequest;
 import com.agilsaidov.codemasia.exam.dto.response.ProblemResponse;
+import com.agilsaidov.codemasia.exam.dto.response.ProblemSummary;
+import com.agilsaidov.codemasia.exam.model.Difficulty;
 import com.agilsaidov.codemasia.exam.service.ProblemService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @RestController
@@ -26,5 +30,32 @@ public class ProblemController {
 
         return ResponseEntity.status(HttpStatus.CREATED).body(problemService.createProblem(examId, role, creatorId, request));
     }
+
+
+    @GetMapping
+    public ResponseEntity<Page<ProblemSummary>> getProblems(@PathVariable String examId,
+                                                            @RequestHeader("X-User-Id") UUID creatorId,
+                                                            @RequestHeader("X-User-Role") String role,
+                                                            @RequestParam(required = false) String title,
+                                                            @RequestParam(required = false) Difficulty difficulty,
+                                                            @RequestParam(required = false) OffsetDateTime createdAt,
+                                                            @RequestParam(required = false) Integer point,
+                                                            @RequestParam(defaultValue = "0") int page,
+                                                            @RequestParam(defaultValue = "10") int size) {
+
+        return ResponseEntity.ok(problemService.getProblems(examId, creatorId, role,
+                title, difficulty, createdAt, point, page, size));
+    }
+
+
+    @GetMapping("/{problemId}")
+    public ResponseEntity<ProblemResponse> getProblemDetails(@RequestHeader("X-User-Id") UUID creatorId,
+                                                             @RequestHeader("X-User-Role") String role,
+                                                             @PathVariable String examId,
+                                                             @PathVariable Long problemId) {
+
+        return ResponseEntity.ok(problemService.getProblemDetails(creatorId, role, examId, problemId));
+    }
+
 
 }

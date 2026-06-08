@@ -15,4 +15,8 @@ public interface ExamRepository extends JpaRepository<Exam, String>, JpaSpecific
     boolean existsByExamId(String examId);
 
     Page<Exam> findAllByCreatorIdAndEnabledTrue(UUID creatorId, Pageable pageable);
+
+    boolean existsByExamIdAndCreatorId(String examId, UUID creatorId);
+
+    boolean existsByExamIdAndCreatorIdAndEnabled(String examId, UUID creatorId, Boolean enabled);
 }
