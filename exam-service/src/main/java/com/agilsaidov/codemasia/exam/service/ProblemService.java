@@ -1,6 +1,7 @@
 package com.agilsaidov.codemasia.exam.service;
 
 import com.agilsaidov.codemasia.exam.dto.request.CreateProblemRequest;
+import com.agilsaidov.codemasia.exam.dto.request.UpdateProblemRequest;
 import com.agilsaidov.codemasia.exam.dto.response.ProblemResponse;
 import com.agilsaidov.codemasia.exam.dto.response.ProblemSummary;
 import com.agilsaidov.codemasia.exam.exception.ForbiddenException;
@@ -22,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
+import java.util.Objects;
 import java.util.UUID;
 
 @Slf4j
@@ -80,6 +82,50 @@ public class ProblemService {
         }
         log.debug("Fetched problem={} from exam={} for creator={} role={}", problemId, examId, creatorId, role);
         return response;
+    }
+
+
+    @Transactional
+    public ProblemResponse updateProblem(UUID creatorId, String role,
+                                         String examId, Long problemId,
+                                         UpdateProblemRequest request){
+
+        log.debug("Updating problem={} in exam={} by user={} role={}", problemId, examId, creatorId, role);
+
+        Problem problem = role.equals("TEACHER")
+                ? getOwnedEnabledExamProblem(creatorId, examId, problemId)
+                : getExamProblem(examId, problemId);
+
+        Integer previousPoint = problem.getPoint();
+        Integer previousTimeLimitMs = problem.getTimeLimitMs();
+        Integer previousMemoryLimitKb = problem.getMemoryLimitKb();
+        Difficulty previousDifficulty = problem.getDifficulty();
+
+        problem.setTitle(request.getTitle());
+        problem.setStatement(request.getStatement());
+        problem.setTimeLimitMs(request.getTimeLimitMs());
+        problem.setMemoryLimitKb(request.getMemoryLimitKb());
+        problem.setPoint(request.getPoint());
+        problem.setDifficulty(request.getDifficulty());
+
+        Problem saved = problemRepository.save(problem);
+        log.info("Problem={} updated in exam={} by user={} role={}", problemId, examId, creatorId, role);
+
+        if (!Objects.equals(previousPoint, saved.getPoint())
+                || !Objects.equals(previousTimeLimitMs, saved.getTimeLimitMs())
+                || !Objects.equals(previousMemoryLimitKb, saved.getMemoryLimitKb())
+                || previousDifficulty != saved.getDifficulty()) {
+            log.info(
+                    "Problem={} scoring/limits changed in exam={} by user={} role={}: point {} -> {}, timeLimitMs {} -> {}, memoryLimitKb {} -> {}, difficulty {} -> {}",
+                    problemId, examId, creatorId, role,
+                    previousPoint, saved.getPoint(),
+                    previousTimeLimitMs, saved.getTimeLimitMs(),
+                    previousMemoryLimitKb, saved.getMemoryLimitKb(),
+                    previousDifficulty, saved.getDifficulty()
+            );
+        }
+
+        return problemMapper.toProblemResponse(saved);
     }
 
 

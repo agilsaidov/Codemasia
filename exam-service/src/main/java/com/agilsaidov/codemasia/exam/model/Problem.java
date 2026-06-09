@@ -46,7 +46,7 @@ public class Problem {
     private Integer memoryLimitKb = 128000;
 
     @Column(name = "points", nullable = false)
-    private Integer point = 100;
+    private Integer point = 50;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "difficulty", length = 10)

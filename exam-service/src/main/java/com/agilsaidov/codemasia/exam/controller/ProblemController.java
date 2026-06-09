@@ -1,11 +1,13 @@
 package com.agilsaidov.codemasia.exam.controller;
 
 import com.agilsaidov.codemasia.exam.dto.request.CreateProblemRequest;
+import com.agilsaidov.codemasia.exam.dto.request.UpdateProblemRequest;
 import com.agilsaidov.codemasia.exam.dto.response.ProblemResponse;
 import com.agilsaidov.codemasia.exam.dto.response.ProblemSummary;
 import com.agilsaidov.codemasia.exam.model.Difficulty;
 import com.agilsaidov.codemasia.exam.service.ProblemService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
@@ -40,8 +42,8 @@ public class ProblemController {
                                                             @RequestParam(required = false) Difficulty difficulty,
                                                             @RequestParam(required = false) OffsetDateTime createdAt,
                                                             @RequestParam(required = false) Integer point,
-                                                            @RequestParam(defaultValue = "0") int page,
-                                                            @RequestParam(defaultValue = "10") int size) {
+                                                            @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page parameter cannot be negative") int page,
+                                                            @RequestParam(defaultValue = "10") @Min(value = 1, message = "Size parameter must be at least 1") int size) {
 
         return ResponseEntity.ok(problemService.getProblems(examId, creatorId, role,
                 title, difficulty, createdAt, point, page, size));
@@ -57,5 +59,15 @@ public class ProblemController {
         return ResponseEntity.ok(problemService.getProblemDetails(creatorId, role, examId, problemId));
     }
 
+
+    @PutMapping("/{problemId}")
+    public ResponseEntity<ProblemResponse> updateProblem(@RequestHeader("X-User-Id") UUID creatorId,
+                                                         @RequestHeader("X-User-Role") String role,
+                                                         @PathVariable String examId,
+                                                         @PathVariable Long problemId,
+                                                         @Valid @RequestBody UpdateProblemRequest request) {
+
+        return ResponseEntity.ok(problemService.updateProblem(creatorId, role, examId, problemId, request));
+    }
 
 }

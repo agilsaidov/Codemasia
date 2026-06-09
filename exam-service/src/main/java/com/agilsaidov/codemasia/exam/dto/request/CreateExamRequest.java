@@ -8,9 +8,9 @@ import lombok.Setter;
 @Getter @Setter
 public class CreateExamRequest {
     @NotBlank(message = "Field 'title' is required")
-    @Size(max = 200)
+    @Size(message = "Max allowed length for 'title' is 200", max = 200)
     private String title;
 
-    @Size(max = 500)
+    @Size(message = "Max allowed length for 'description' is 500", max = 500)
     private String description;
 }
