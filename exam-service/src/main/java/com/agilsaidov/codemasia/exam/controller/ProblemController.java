@@ -42,11 +42,12 @@ public class ProblemController {
                                                             @RequestParam(required = false) Difficulty difficulty,
                                                             @RequestParam(required = false) OffsetDateTime createdAt,
                                                             @RequestParam(required = false) Integer point,
+                                                            @RequestParam(required = false) Boolean enabled,
                                                             @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page parameter cannot be negative") int page,
                                                             @RequestParam(defaultValue = "10") @Min(value = 1, message = "Size parameter must be at least 1") int size) {
 
         return ResponseEntity.ok(problemService.getProblems(examId, creatorId, role,
-                title, difficulty, createdAt, point, page, size));
+                title, difficulty, createdAt, point, enabled, page, size));
     }
 
 
@@ -68,6 +69,26 @@ public class ProblemController {
                                                          @Valid @RequestBody UpdateProblemRequest request) {
 
         return ResponseEntity.ok(problemService.updateProblem(creatorId, role, examId, problemId, request));
+    }
+
+
+    @DeleteMapping("/{problemId}")
+    public ResponseEntity<Void> deleteProblem(@RequestHeader("X-User-Id") UUID creatorId,
+                                              @RequestHeader("X-User-Role") String role,
+                                              @PathVariable String examId,
+                                              @PathVariable Long problemId) {
+        problemService.deleteProblem(creatorId, role, examId, problemId);
+        return ResponseEntity.ok().build();
+    }
+
+
+    @PatchMapping("/{problemId}/enable")
+    public ResponseEntity<Void> enableProblem(@PathVariable String examId,
+                                              @PathVariable Long problemId,
+                                              @RequestParam boolean enabled) {
+
+        problemService.enableProblem(examId, problemId, enabled);
+        return ResponseEntity.ok().build();
     }
 
 }

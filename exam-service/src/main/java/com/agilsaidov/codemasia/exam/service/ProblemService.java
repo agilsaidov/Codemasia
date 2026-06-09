@@ -32,6 +32,7 @@ import java.util.UUID;
 public class ProblemService {
 
     private final ExamRepository examRepository;
+    private final ExamSessionService examSessionService;
     private final ProblemMapper problemMapper;
     private final ProblemRepository problemRepository;
 
@@ -51,10 +52,12 @@ public class ProblemService {
     @Transactional(readOnly = true)
     public Page<ProblemSummary> getProblems(String examId, UUID creatorId, String role, String title,
                                             Difficulty difficulty, OffsetDateTime createdAt,
-                                            Integer point, int page, int size) {
+                                            Integer point, Boolean enabled, int page, int size) {
 
-        log.debug("Fetching problems: exam={} role={} creatorId={} title={} difficulty={} point={} page={} size={}",
-                examId, role, creatorId, title, difficulty, point, page, size);
+        Boolean enabledFilter = role.equals("TEACHER") ? true : enabled;
+
+        log.debug("Fetching problems: exam={} role={} creatorId={} title={} difficulty={} point={} enabled={} page={} size={}",
+                examId, role, creatorId, title, difficulty, point, enabledFilter, page, size);
 
         if (role.equals("TEACHER")) {
             getOwnedEnabledExam(creatorId, examId);
@@ -63,7 +66,7 @@ public class ProblemService {
         }
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<ProblemSummary> result = problemRepository
-                .findAll(ProblemSpec.withFilters(examId, title, difficulty, createdAt, point), pageable)
+                .findAll(ProblemSpec.withFilters(examId, title, difficulty, createdAt, point, enabledFilter), pageable)
                 .map(problemMapper::toProblemSummary);
         log.debug("Fetched {} problem(s) for exam={} by creator={} role={}", result.getTotalElements(), examId, creatorId, role);
         return result;
@@ -76,7 +79,7 @@ public class ProblemService {
 
         ProblemResponse response;
         if (role.equals("TEACHER")) {
-            response = problemMapper.toProblemResponse(getOwnedEnabledExamProblem(creatorId, examId, problemId));
+            response = problemMapper.toProblemResponse(getOwnedEnabledProblem(creatorId, examId, problemId));
         } else {
             response = problemMapper.toProblemResponse(getExamProblem(examId, problemId));
         }
@@ -93,7 +96,7 @@ public class ProblemService {
         log.debug("Updating problem={} in exam={} by user={} role={}", problemId, examId, creatorId, role);
 
         Problem problem = role.equals("TEACHER")
-                ? getOwnedEnabledExamProblem(creatorId, examId, problemId)
+                ? getOwnedEnabledProblem(creatorId, examId, problemId)
                 : getExamProblem(examId, problemId);
 
         Integer previousPoint = problem.getPoint();
@@ -129,6 +132,41 @@ public class ProblemService {
     }
 
 
+    @Transactional
+    public void deleteProblem(UUID creatorId, String role, String examId, Long problemId) {
+        log.debug("Soft deleting(enabled=false) problem={} in exam={} by user={} role={}", problemId, examId, creatorId, role);
+        Problem problem = role.equals("TEACHER")
+                ? getOwnedEnabledProblem(creatorId, examId, problemId)
+                : getExamProblem(examId, problemId);
+
+        if (!Boolean.TRUE.equals(problem.getEnabled())) {
+            log.debug("Problem={} in exam={} is already disabled, no-op", problemId, examId);
+            return;
+        }
+
+        examSessionService.ensureNoActiveSessions(examId);
+        problem.setEnabled(false);
+        problemRepository.save(problem);
+        log.info("Problem={} soft deleted(enabled=false) in exam={} by user={} role={}", problemId, examId, creatorId, role);
+    }
+
+
+    @Transactional
+    public void enableProblem(String examId, Long problemId, boolean enabled) {
+        log.debug("Setting enabled={} for problem={} in exam={} (admin)", enabled, problemId, examId);
+        Problem problem = getExamProblem(examId, problemId);
+
+        if (enabled == Boolean.TRUE.equals(problem.getEnabled())) {
+            log.debug("Problem={} in exam={} already has enabled={}, no-op", problemId, examId, enabled);
+            return;
+        }
+
+        examSessionService.ensureNoActiveSessions(examId);
+        problem.setEnabled(enabled);
+        problemRepository.save(problem);
+        log.info("Problem={} in exam={} enabled set to {} by admin", problemId, examId, enabled);
+    }
+
     //Helper Methods
     private Exam getOwnedEnabledExam(UUID creatorId, String examId) {
         Exam exam = getExam(examId);
@@ -160,9 +198,10 @@ public class ProblemService {
     }
 
 
-    private Problem getOwnedEnabledExamProblem(UUID creatorId, String examId, Long problemId) {
+
+    private Problem getOwnedEnabledProblem(UUID creatorId, String examId, Long problemId) {
         getOwnedEnabledExam(creatorId, examId);
-        return problemRepository
+        Problem problem = problemRepository
                 .getProblemByExam_ExamIdAndProblemId(examId, problemId)
                 .orElseThrow(() -> {
                     log.warn("Problem={} not found in exam={}", problemId, examId);
@@ -171,6 +210,15 @@ public class ProblemService {
                             "Problem with id " + problemId + " not found"
                     );
                 });
+
+        if (!Boolean.TRUE.equals(problem.getEnabled())) {
+            log.warn("Problem={} in exam={} is disabled, requested by creator={}", problemId, examId, creatorId);
+            throw new NotFoundException(
+                    "PROBLEM_NOT_FOUND",
+                    "Problem with id " + problemId + " not found"
+            );
+        }
+        return problem;
     }
 
 

@@ -52,6 +52,9 @@ public class Problem {
     @Column(name = "difficulty", length = 10)
     private Difficulty difficulty;
 
+    @Column(name = "enabled", nullable = false)
+    private Boolean enabled = true;
+
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 

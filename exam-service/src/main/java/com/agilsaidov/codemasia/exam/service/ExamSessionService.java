@@ -24,7 +24,7 @@ public class ExamSessionService {
         String examId = exam.getExamId();
 
         if (examSessionRepository.existsByExam_ExamIdAndStatus(examId, SessionStatus.ACTIVE)) {
-            log.warn("Delete blocked for exam [{}]: one or more sessions are currently ACTIVE", examId);
+            log.warn("Delete blocked for exam={}: one or more sessions are currently ACTIVE", examId);
             throw new BadRequestException(
                     "ACTIVE_SESSIONS_EXIST",
                     "Cannot delete exam [" + examId + "] while sessions are active"
@@ -43,13 +43,24 @@ public class ExamSessionService {
             examSessionRepository.saveAll(scheduled);
         }
 
-        log.info("Exam [{}] cascade complete: {} SCHEDULED session(s) cancelled", examId, scheduled.size());
+        log.info("Exam={} cascade complete: {} SCHEDULED session(s) cancelled", examId, scheduled.size());
         return new SessionCascadeResult(scheduled.size());
     }
 
     @Transactional(readOnly = true)
     public long countByExamId(String examId) {
         return examSessionRepository.countByExam_ExamId(examId);
+    }
+
+    @Transactional(readOnly = true)
+    public void ensureNoActiveSessions(String examId) {
+        if (examSessionRepository.existsByExam_ExamIdAndStatus(examId, SessionStatus.ACTIVE)) {
+            log.warn("Operation blocked for exam={}: one or more sessions are currently ACTIVE", examId);
+            throw new BadRequestException(
+                    "ACTIVE_SESSIONS_EXIST",
+                    "Cannot modify exam problems while sessions are active"
+            );
+        }
     }
 
     public record SessionCascadeResult(int cancelled) {}

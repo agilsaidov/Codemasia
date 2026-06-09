@@ -194,7 +194,7 @@ public class ExamService {
 
     private TeacherExamDetailsResponse enrichTeacherDetails(Exam exam) {
         TeacherExamDetailsResponse response = examMapper.toTeacherExamDetailsResponse(exam);
-        response.setProblemCount(problemRepository.countByExam_ExamId(exam.getExamId()));
+        response.setProblemCount(problemRepository.countByExam_ExamIdAndEnabledTrue(exam.getExamId()));
         return response;
     }
 
