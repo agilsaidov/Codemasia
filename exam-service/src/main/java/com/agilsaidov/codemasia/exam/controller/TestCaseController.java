@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -27,5 +28,15 @@ public class TestCaseController {
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(testCaseService.createTestCase(examId, role, creatorId, problemId, request));
+    }
+
+
+    @GetMapping
+    public ResponseEntity<List<TestCaseResponse>> getTestCases(@PathVariable String examId,
+                                                               @PathVariable Long problemId,
+                                                               @RequestHeader("X-User-Id") UUID creatorId,
+                                                               @RequestHeader("X-User-Role") String role) {
+
+        return ResponseEntity.ok(testCaseService.getTestCases(examId, role, creatorId, problemId));
     }
 }

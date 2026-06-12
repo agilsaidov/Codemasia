@@ -16,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
 
 @Slf4j
@@ -51,6 +52,24 @@ public class TestCaseService {
         return testCaseMapper.toTestCaseResponse(saved);
     }
 
+
+    @Transactional(readOnly = true)
+    public List<TestCaseResponse> getTestCases(String examId, String role, UUID creatorId, Long problemId) {
+        log.debug("Fetching test cases for problem={} in exam={} by creator={} role={}", problemId, examId, creatorId, role);
+
+        if (role.equals("TEACHER")) {
+            getOwnedEnabledProblem(creatorId, examId, problemId);
+        } else {
+            getExamProblem(examId, problemId);
+        }
+
+        List<TestCaseResponse> result = testCaseRepository.findByProblem_ProblemIdOrderByPositionAsc(problemId)
+                .stream()
+                .map(testCaseMapper::toTestCaseResponse)
+                .toList();
+        log.debug("Fetched {} test case(s) for problem={} in exam={}", result.size(), problemId, examId);
+        return result;
+    }
 
 
     private Exam getOwnedEnabledExam(UUID creatorId, String examId) {
