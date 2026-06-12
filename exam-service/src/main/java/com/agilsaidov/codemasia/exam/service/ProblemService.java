@@ -54,7 +54,7 @@ public class ProblemService {
                                             Difficulty difficulty, OffsetDateTime createdAt,
                                             Integer point, Boolean enabled, int page, int size) {
 
-        Boolean enabledFilter = role.equals("TEACHER") ? true : enabled;
+        Boolean enabledFilter = role.equals("TEACHER") ? Boolean.TRUE : enabled;
 
         log.debug("Fetching problems: exam={} role={} creatorId={} title={} difficulty={} point={} enabled={} page={} size={}",
                 examId, role, creatorId, title, difficulty, point, enabledFilter, page, size);
