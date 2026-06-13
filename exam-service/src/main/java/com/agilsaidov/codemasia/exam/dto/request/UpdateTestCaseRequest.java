@@ -8,7 +8,7 @@ import lombok.Setter;
 
 @Getter @Setter
 public class UpdateTestCaseRequest {
-    @NotBlank(message = "Field 'stdin' is required")
+    @NotNull(message = "Field 'stdin' is required")
     private String stdin;
 
     @NotBlank(message = "Field 'expectedOutput' is required")

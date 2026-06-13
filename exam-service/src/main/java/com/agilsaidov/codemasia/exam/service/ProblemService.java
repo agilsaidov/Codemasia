@@ -40,6 +40,7 @@ public class ProblemService {
     @Transactional
     public ProblemResponse createProblem(String examId, String role, UUID creatorId, CreateProblemRequest request){
         log.debug("Creating problem in exam={} by creator={} role={}", examId, creatorId, role);
+        examSessionService.ensureNoActiveSessions(examId);
         Exam exam = role.equals("ADMIN") ? getExam(examId) : getOwnedEnabledExam(creatorId, examId);
         Problem problem = problemMapper.fromCreateProblemRequestToProblem(request);
         problem.setExam(exam);
@@ -94,6 +95,8 @@ public class ProblemService {
                                          UpdateProblemRequest request){
 
         log.debug("Updating problem={} in exam={} by user={} role={}", problemId, examId, creatorId, role);
+
+        examSessionService.ensureNoActiveSessions(examId);
 
         Problem problem = role.equals("TEACHER")
                 ? getOwnedEnabledProblem(creatorId, examId, problemId)
