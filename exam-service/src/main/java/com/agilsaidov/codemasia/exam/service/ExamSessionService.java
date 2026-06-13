@@ -53,12 +53,28 @@ public class ExamSessionService {
     }
 
     @Transactional(readOnly = true)
+    public boolean hasActiveSessions(String examId) {
+        return examSessionRepository.existsByExam_ExamIdAndStatus(examId, SessionStatus.ACTIVE);
+    }
+
+    @Transactional(readOnly = true)
     public void ensureNoActiveSessions(String examId) {
-        if (examSessionRepository.existsByExam_ExamIdAndStatus(examId, SessionStatus.ACTIVE)) {
+        if (hasActiveSessions(examId)) {
             log.warn("Operation blocked for exam={}: one or more sessions are currently ACTIVE", examId);
             throw new BadRequestException(
                     "ACTIVE_SESSIONS_EXIST",
                     "Cannot modify exam problems while sessions are active"
+            );
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public void ensureActiveSessionExists(String examId) {
+        if (!hasActiveSessions(examId)) {
+            log.warn("Hotfix blocked for exam={}: no ACTIVE session found", examId);
+            throw new BadRequestException(
+                    "NO_ACTIVE_SESSION",
+                    "Test case hotfix is only allowed while exam sessions are active"
             );
         }
     }

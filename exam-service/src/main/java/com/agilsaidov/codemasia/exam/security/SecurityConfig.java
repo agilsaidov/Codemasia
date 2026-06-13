@@ -48,6 +48,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PATCH, "/api/exams/*/problems/*/enable").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/exams/*/problems/*/test-cases").hasAnyRole("TEACHER", "ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/exams/*/problems/*/test-cases").hasAnyRole("TEACHER", "ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/exams/*/problems/*/test-cases/*").hasAnyRole("TEACHER", "ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/exams/*/problems/*/test-cases/*/hotfix").hasRole("ADMIN")
 
                         .anyRequest().authenticated()
                 );

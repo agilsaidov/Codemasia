@@ -1,7 +1,10 @@
 package com.agilsaidov.codemasia.exam.service;
 
 import com.agilsaidov.codemasia.exam.dto.request.CreateTestCaseRequest;
+import com.agilsaidov.codemasia.exam.dto.request.HotfixTestCaseRequest;
+import com.agilsaidov.codemasia.exam.dto.request.UpdateTestCaseRequest;
 import com.agilsaidov.codemasia.exam.dto.response.TestCaseResponse;
+import com.agilsaidov.codemasia.exam.exception.BadRequestException;
 import com.agilsaidov.codemasia.exam.exception.ForbiddenException;
 import com.agilsaidov.codemasia.exam.exception.NotFoundException;
 import com.agilsaidov.codemasia.exam.mapper.TestCaseMapper;
@@ -25,6 +28,7 @@ import java.util.UUID;
 public class TestCaseService {
 
     private final ExamRepository examRepository;
+    private final ExamSessionService examSessionService;
     private final ProblemRepository problemRepository;
     private final TestCaseMapper testCaseMapper;
     private final TestCaseRepository testCaseRepository;
@@ -33,6 +37,8 @@ public class TestCaseService {
     public TestCaseResponse createTestCase(String examId, String role, UUID creatorId, Long problemId,
                                            CreateTestCaseRequest request) {
         log.debug("Creating test case for problem={} in exam={} by creator={} role={}", problemId, examId, creatorId, role);
+
+        examSessionService.ensureNoActiveSessions(examId);
 
         Problem problem = role.equals("TEACHER")
                 ? getOwnedEnabledProblem(creatorId, examId, problemId)
@@ -69,6 +75,95 @@ public class TestCaseService {
                 .toList();
         log.debug("Fetched {} test case(s) for problem={} in exam={}", result.size(), problemId, examId);
         return result;
+    }
+
+
+    @Transactional
+    public TestCaseResponse updateTestCase(String examId, Long problemId, Long testCaseId, String role, UUID creatorId,
+                                           UpdateTestCaseRequest request) {
+        log.debug("Updating test case={} for problem={} in exam={} by creator={} role={}", testCaseId, problemId, examId, creatorId, role);
+
+        examSessionService.ensureNoActiveSessions(examId);
+
+        if (role.equals("TEACHER")) {
+            getOwnedEnabledProblem(creatorId, examId, problemId);
+        } else {
+            getExamProblem(examId, problemId);
+        }
+
+        TestCase testCase = getTestCaseForProblem(testCaseId, problemId);
+
+        testCase.setStdin(request.getStdin());
+        testCase.setSample(request.getSample());
+        if (request.getPosition() != null) {
+            testCase.setPosition(request.getPosition());
+        }
+        testCase.setExpectedOutput(request.getExpectedOutput());
+
+        TestCase saved = testCaseRepository.save(testCase);
+        log.info("TestCase={} updated for problem={} in exam={} by creator={} role={}",
+                testCaseId, problemId, examId, creatorId, role);
+        return testCaseMapper.toTestCaseResponse(saved);
+    }
+
+
+    @Transactional
+    public TestCaseResponse hotfixTestCase(String examId, Long problemId, Long testCaseId, UUID adminId,
+                                           HotfixTestCaseRequest request) {
+        log.debug("Hotfixing test case={} for problem={} in exam={} by admin={}", testCaseId, problemId, examId, adminId);
+
+        examSessionService.ensureActiveSessionExists(examId);
+        getExamProblem(examId, problemId);
+
+        boolean stdinProvided = request.getStdin() != null;
+        boolean expectedOutputProvided = request.getExpectedOutput() != null;
+        if (!stdinProvided && !expectedOutputProvided) {
+            throw new BadRequestException(
+                    "HOTFIX_FIELDS_REQUIRED",
+                    "At least one of stdin or expectedOutput must be provided"
+            );
+        }
+        if (expectedOutputProvided && request.getExpectedOutput().isBlank()) {
+            throw new BadRequestException(
+                    "INVALID_HOTFIX_FIELD",
+                    "Field 'expectedOutput' cannot be blank"
+            );
+        }
+
+        TestCase testCase = getTestCaseForProblem(testCaseId, problemId);
+        String previousStdin = testCase.getStdin();
+        String previousExpectedOutput = testCase.getExpectedOutput();
+
+        if (stdinProvided) {
+            testCase.setStdin(request.getStdin());
+        }
+        if (expectedOutputProvided) {
+            testCase.setExpectedOutput(request.getExpectedOutput());
+        }
+
+        TestCase saved = testCaseRepository.save(testCase);
+        log.info(
+                "TestCase={} hotfixed for problem={} in exam={} by admin={}: reason=[{}], stdin [{} -> {}], expectedOutput [{} -> {}]",
+                testCaseId,
+                problemId,
+                examId,
+                adminId,
+                request.getReason(),
+                previousStdin,
+                saved.getStdin(),
+                previousExpectedOutput,
+                saved.getExpectedOutput()
+        );
+        return testCaseMapper.toTestCaseResponse(saved);
+    }
+
+
+    private TestCase getTestCaseForProblem(Long testCaseId, Long problemId) {
+        return testCaseRepository.findByTestCaseIdAndProblem_ProblemId(testCaseId, problemId)
+                .orElseThrow(() -> new NotFoundException(
+                        "TEST_CASE_NOT_FOUND",
+                        "Test case with id: " + testCaseId + " not found"
+                ));
     }
 
 

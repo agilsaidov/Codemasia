@@ -1,6 +1,8 @@
 package com.agilsaidov.codemasia.exam.controller;
 
 import com.agilsaidov.codemasia.exam.dto.request.CreateTestCaseRequest;
+import com.agilsaidov.codemasia.exam.dto.request.HotfixTestCaseRequest;
+import com.agilsaidov.codemasia.exam.dto.request.UpdateTestCaseRequest;
 import com.agilsaidov.codemasia.exam.dto.response.TestCaseResponse;
 import com.agilsaidov.codemasia.exam.service.TestCaseService;
 import jakarta.validation.Valid;
@@ -38,5 +40,27 @@ public class TestCaseController {
                                                                @RequestHeader("X-User-Role") String role) {
 
         return ResponseEntity.ok(testCaseService.getTestCases(examId, role, creatorId, problemId));
+    }
+
+
+    @PutMapping("/{testCaseId}")
+    public ResponseEntity<TestCaseResponse> updateTestCase(@PathVariable String examId,
+                                                           @PathVariable Long problemId,
+                                                           @PathVariable Long testCaseId,
+                                                           @RequestHeader("X-User-Id") UUID creatorId,
+                                                           @RequestHeader("X-User-Role") String role,
+                                                           @RequestBody @Valid UpdateTestCaseRequest request){
+
+        return ResponseEntity.ok(testCaseService.updateTestCase(examId, problemId, testCaseId, role, creatorId, request));
+    }
+
+
+    @PatchMapping("/{testCaseId}/hotfix")
+    public ResponseEntity<TestCaseResponse> hotfixTestCase(@PathVariable String examId,
+                                                           @PathVariable Long problemId,
+                                                           @PathVariable Long testCaseId,
+                                                           @RequestHeader("X-User-Id") UUID adminId,
+                                                           @Valid @RequestBody HotfixTestCaseRequest request) {
+        return ResponseEntity.ok(testCaseService.hotfixTestCase(examId, problemId, testCaseId, adminId, request));
     }
 }
