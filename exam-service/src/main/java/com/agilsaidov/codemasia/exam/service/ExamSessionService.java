@@ -1,9 +1,11 @@
 package com.agilsaidov.codemasia.exam.service;
 
 import com.agilsaidov.codemasia.exam.exception.BadRequestException;
+import com.agilsaidov.codemasia.exam.exception.NotFoundException;
 import com.agilsaidov.codemasia.exam.model.Exam;
 import com.agilsaidov.codemasia.exam.model.ExamSession;
 import com.agilsaidov.codemasia.exam.model.SessionStatus;
+import com.agilsaidov.codemasia.exam.repository.ExamRepository;
 import com.agilsaidov.codemasia.exam.repository.ExamSessionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,13 +19,14 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ExamSessionService {
 
+    private final ExamRepository examRepository;
     private final ExamSessionRepository examSessionRepository;
 
     @Transactional
     public SessionCascadeResult cascadeOnExamDelete(Exam exam) {
         String examId = exam.getExamId();
 
-        if (examSessionRepository.existsByExam_ExamIdAndStatus(examId, SessionStatus.ACTIVE)) {
+        if (hasActiveSessions(examId)) {
             log.warn("Delete blocked for exam={}: one or more sessions are currently ACTIVE", examId);
             throw new BadRequestException(
                     "ACTIVE_SESSIONS_EXIST",
@@ -31,6 +34,30 @@ public class ExamSessionService {
             );
         }
 
+        int cancelled = cancelScheduledSessions(examId);
+        log.info("Exam={} cascade complete: {} SCHEDULED session(s) cancelled", examId, cancelled);
+        return new SessionCascadeResult(cancelled);
+    }
+
+    @Transactional
+    public void invalidateAssignmentReadiness(String examId) {
+        ensureNoActiveSessions(examId);
+        int cancelled = cancelScheduledSessions(examId);
+
+        Exam exam = examRepository.findById(examId)
+                .orElseThrow(() -> new NotFoundException(
+                        "EXAM_NOT_FOUND",
+                        "Exam with id " + examId + " not found"
+                ));
+        exam.setPublishReady(false);
+        examRepository.save(exam);
+
+        log.info("Exam={} assignment readiness invalidated: publishReady=false, {} scheduled session(s) cancelled",
+                examId, cancelled);
+    }
+
+    @Transactional
+    public int cancelScheduledSessions(String examId) {
         List<ExamSession> scheduled = examSessionRepository
                 .findAllByExam_ExamIdAndStatus(examId, SessionStatus.SCHEDULED);
 
@@ -43,8 +70,7 @@ public class ExamSessionService {
             examSessionRepository.saveAll(scheduled);
         }
 
-        log.info("Exam={} cascade complete: {} SCHEDULED session(s) cancelled", examId, scheduled.size());
-        return new SessionCascadeResult(scheduled.size());
+        return scheduled.size();
     }
 
     @Transactional(readOnly = true)

@@ -107,9 +107,10 @@ public class ExamService {
         log.debug("Updating exam={} (admin)", examId);
         Exam exam = getExam(examId);
 
+        examSessionService.invalidateAssignmentReadiness(examId);
+
         exam.setTitle(request.getTitle());
         exam.setDescription(request.getDescription());
-        exam.setPublishReady(false);
         examRepository.save(exam);
 
         log.info("Exam={} updated (admin)", examId);
@@ -121,6 +122,8 @@ public class ExamService {
     public TeacherExamDetailsResponse updateTeacherExam(UUID teacherId, String examId, UpdateExamRequest request) {
         log.debug("Updating exam={} by teacher={}", examId, teacherId);
         Exam exam = getOwnedEnabledExam(teacherId, examId);
+
+        examSessionService.invalidateAssignmentReadiness(examId);
 
         exam.setTitle(request.getTitle());
         exam.setDescription(request.getDescription());
@@ -169,9 +172,19 @@ public class ExamService {
     public void toggleExamPublishReady(UUID creatorId, String examId, boolean publishReady) {
         log.debug("Toggling publishReady={} for exam={} by creator={}", publishReady, examId, creatorId);
         Exam exam = getOwnedEnabledExam(creatorId, examId);
-        exam.setPublishReady(publishReady);
+
+        if (publishReady) {
+            exam.setPublishReady(true);
+            examRepository.save(exam);
+            log.info("Exam={} publishReady set to true by creator={}", examId, creatorId);
+            return;
+        }
+
+        int cancelled = examSessionService.cancelScheduledSessions(examId);
+        exam.setPublishReady(false);
         examRepository.save(exam);
-        log.info("Exam={} publishReady set to {} by creator={}", examId, publishReady, creatorId);
+        log.info("Exam={} publishReady set to false by creator={}, {} scheduled session(s) cancelled",
+                examId, creatorId, cancelled);
     }
 
 

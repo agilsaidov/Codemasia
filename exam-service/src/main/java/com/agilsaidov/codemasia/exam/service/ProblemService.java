@@ -40,8 +40,8 @@ public class ProblemService {
     @Transactional
     public ProblemResponse createProblem(String examId, String role, UUID creatorId, CreateProblemRequest request){
         log.debug("Creating problem in exam={} by creator={} role={}", examId, creatorId, role);
-        examSessionService.ensureNoActiveSessions(examId);
         Exam exam = role.equals("ADMIN") ? getExam(examId) : getOwnedEnabledExam(creatorId, examId);
+        examSessionService.invalidateAssignmentReadiness(examId);
         Problem problem = problemMapper.fromCreateProblemRequestToProblem(request);
         problem.setExam(exam);
         Problem saved = problemRepository.save(problem);
@@ -96,7 +96,7 @@ public class ProblemService {
 
         log.debug("Updating problem={} in exam={} by user={} role={}", problemId, examId, creatorId, role);
 
-        examSessionService.ensureNoActiveSessions(examId);
+        examSessionService.invalidateAssignmentReadiness(examId);
 
         Problem problem = role.equals("TEACHER")
                 ? getOwnedEnabledProblem(creatorId, examId, problemId)
@@ -147,7 +147,7 @@ public class ProblemService {
             return;
         }
 
-        examSessionService.ensureNoActiveSessions(examId);
+        examSessionService.invalidateAssignmentReadiness(examId);
         problem.setEnabled(false);
         problemRepository.save(problem);
         log.info("Problem={} soft deleted(enabled=false) in exam={} by user={} role={}", problemId, examId, creatorId, role);
@@ -164,7 +164,7 @@ public class ProblemService {
             return;
         }
 
-        examSessionService.ensureNoActiveSessions(examId);
+        examSessionService.invalidateAssignmentReadiness(examId);
         problem.setEnabled(enabled);
         problemRepository.save(problem);
         log.info("Problem={} in exam={} enabled set to {} by admin", problemId, examId, enabled);
