@@ -63,4 +63,16 @@ public class TestCaseController {
                                                            @Valid @RequestBody HotfixTestCaseRequest request) {
         return ResponseEntity.ok(testCaseService.hotfixTestCase(examId, problemId, testCaseId, adminId, request));
     }
+
+
+    @DeleteMapping("/{testCaseId}")
+    public ResponseEntity<Void> deleteTestCase(@PathVariable String examId,
+                                               @PathVariable Long problemId,
+                                               @PathVariable Long testCaseId,
+                                               @RequestHeader("X-User-Id") UUID creatorId,
+                                               @RequestHeader("X-User-Role") String role){
+
+        testCaseService.deleteTestCase(examId, problemId, testCaseId, creatorId, role);
+        return ResponseEntity.ok().build();
+    }
 }

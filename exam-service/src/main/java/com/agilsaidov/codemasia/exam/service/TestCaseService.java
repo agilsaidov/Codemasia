@@ -158,6 +158,27 @@ public class TestCaseService {
     }
 
 
+    @Transactional
+    public void deleteTestCase(String examId, Long problemId, Long testCaseId, UUID creatorId, String role) {
+        log.debug("Deleting test case={} for problem={} in exam={} by user={}", testCaseId, problemId, examId, creatorId);
+
+        if (role.equals("TEACHER")) {
+            getOwnedEnabledProblem(creatorId, examId, problemId);
+        }else{
+            getExamProblem(examId, problemId);
+        }
+
+        examSessionService.ensureNoActiveSessions(examId);
+
+        TestCase testCase = getTestCaseForProblem(testCaseId, problemId);
+        testCaseRepository.delete(testCase);
+
+        log.info("TestCase={} deleted for problem={} in exam={} by creator={} role={}",
+                testCaseId, problemId, examId, creatorId, role);
+    }
+
+
+
     private TestCase getTestCaseForProblem(Long testCaseId, Long problemId) {
         return testCaseRepository.findByTestCaseIdAndProblem_ProblemId(testCaseId, problemId)
                 .orElseThrow(() -> new NotFoundException(

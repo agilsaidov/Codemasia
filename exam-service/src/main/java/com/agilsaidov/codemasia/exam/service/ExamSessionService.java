@@ -41,8 +41,6 @@ public class ExamSessionService {
 
     @Transactional
     public void invalidateAssignmentReadiness(String examId) {
-        ensureNoActiveSessions(examId);
-        int cancelled = cancelScheduledSessions(examId);
 
         Exam exam = examRepository.findById(examId)
                 .orElseThrow(() -> new NotFoundException(
@@ -51,6 +49,9 @@ public class ExamSessionService {
                 ));
         exam.setPublishReady(false);
         examRepository.save(exam);
+
+        ensureNoActiveSessions(examId);
+        int cancelled = cancelScheduledSessions(examId);
 
         log.info("Exam={} assignment readiness invalidated: publishReady=false, {} scheduled session(s) cancelled",
                 examId, cancelled);
