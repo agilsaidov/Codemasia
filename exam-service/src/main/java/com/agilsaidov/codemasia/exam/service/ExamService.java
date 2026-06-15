@@ -107,7 +107,7 @@ public class ExamService {
         log.debug("Updating exam={} (admin)", examId);
         Exam exam = getExam(examId);
 
-        examSessionService.invalidateAssignmentReadiness(examId);
+        examSessionService.invalidateAssignmentReadiness(exam);
 
         exam.setTitle(request.getTitle());
         exam.setDescription(request.getDescription());
@@ -123,7 +123,7 @@ public class ExamService {
         log.debug("Updating exam={} by teacher={}", examId, teacherId);
         Exam exam = getOwnedEnabledExam(teacherId, examId);
 
-        examSessionService.invalidateAssignmentReadiness(examId);
+        examSessionService.invalidateAssignmentReadiness(exam);
 
         exam.setTitle(request.getTitle());
         exam.setDescription(request.getDescription());

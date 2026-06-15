@@ -1,11 +1,9 @@
 package com.agilsaidov.codemasia.exam.service;
 
 import com.agilsaidov.codemasia.exam.exception.BadRequestException;
-import com.agilsaidov.codemasia.exam.exception.NotFoundException;
 import com.agilsaidov.codemasia.exam.model.Exam;
 import com.agilsaidov.codemasia.exam.model.ExamSession;
 import com.agilsaidov.codemasia.exam.model.SessionStatus;
-import com.agilsaidov.codemasia.exam.repository.ExamRepository;
 import com.agilsaidov.codemasia.exam.repository.ExamSessionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,7 +17,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ExamSessionService {
 
-    private final ExamRepository examRepository;
     private final ExamSessionRepository examSessionRepository;
 
     @Transactional
@@ -40,18 +37,12 @@ public class ExamSessionService {
     }
 
     @Transactional
-    public void invalidateAssignmentReadiness(String examId) {
-
-        Exam exam = examRepository.findById(examId)
-                .orElseThrow(() -> new NotFoundException(
-                        "EXAM_NOT_FOUND",
-                        "Exam with id " + examId + " not found"
-                ));
-        exam.setPublishReady(false);
-        examRepository.save(exam);
+    public void invalidateAssignmentReadiness(Exam exam) {
+        String examId = exam.getExamId();
 
         ensureNoActiveSessions(examId);
         int cancelled = cancelScheduledSessions(examId);
+        exam.setPublishReady(false);
 
         log.info("Exam={} assignment readiness invalidated: publishReady=false, {} scheduled session(s) cancelled",
                 examId, cancelled);

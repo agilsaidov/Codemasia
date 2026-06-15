@@ -40,8 +40,13 @@ public class ProblemService {
     @Transactional
     public ProblemResponse createProblem(String examId, String role, UUID creatorId, CreateProblemRequest request){
         log.debug("Creating problem in exam={} by creator={} role={}", examId, creatorId, role);
-        Exam exam = role.equals("ADMIN") ? getExam(examId) : getOwnedEnabledExam(creatorId, examId);
-        examSessionService.invalidateAssignmentReadiness(examId);
+        Exam exam = role.equals("ADMIN") ?
+                getExam(examId) :
+                getOwnedEnabledExam(creatorId, examId);
+
+        examSessionService.invalidateAssignmentReadiness(exam);
+        examRepository.save(exam);
+
         Problem problem = problemMapper.fromCreateProblemRequestToProblem(request);
         problem.setExam(exam);
         Problem saved = problemRepository.save(problem);
@@ -96,11 +101,13 @@ public class ProblemService {
 
         log.debug("Updating problem={} in exam={} by user={} role={}", problemId, examId, creatorId, role);
 
-        examSessionService.invalidateAssignmentReadiness(examId);
+        Exam exam = role.equals("TEACHER")
+                ? getOwnedEnabledExam(creatorId, examId)
+                : getExam(examId);
+        examSessionService.invalidateAssignmentReadiness(exam);
+        examRepository.save(exam);
 
-        Problem problem = role.equals("TEACHER")
-                ? getOwnedEnabledProblem(creatorId, examId, problemId)
-                : getExamProblem(examId, problemId);
+        Problem problem = getExamProblem(examId, problemId);
 
         Integer previousPoint = problem.getPoint();
         Integer previousTimeLimitMs = problem.getTimeLimitMs();
@@ -147,7 +154,9 @@ public class ProblemService {
             return;
         }
 
-        examSessionService.invalidateAssignmentReadiness(examId);
+        Exam exam = getExam(examId);
+        examSessionService.invalidateAssignmentReadiness(exam);
+        examRepository.save(exam);
         problem.setEnabled(false);
         problemRepository.save(problem);
         log.info("Problem={} soft deleted(enabled=false) in exam={} by user={} role={}", problemId, examId, creatorId, role);
@@ -164,7 +173,9 @@ public class ProblemService {
             return;
         }
 
-        examSessionService.invalidateAssignmentReadiness(examId);
+        Exam exam = getExam(examId);
+        examSessionService.invalidateAssignmentReadiness(exam);
+        examRepository.save(exam);
         problem.setEnabled(enabled);
         problemRepository.save(problem);
         log.info("Problem={} in exam={} enabled set to {} by admin", problemId, examId, enabled);

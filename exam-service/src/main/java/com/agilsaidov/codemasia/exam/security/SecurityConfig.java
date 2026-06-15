@@ -32,24 +32,30 @@ public class SecurityConfig {
                 )
                 .addFilterBefore(headerAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(request -> request
-                        .requestMatchers(HttpMethod.GET, "/api/exams").hasRole("ADMIN")
+
+                        // ── ADMIN ONLY ──────────────────────────────────────────────
+                        .requestMatchers(HttpMethod.GET,   "/api/exams").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/api/exams/*/enable").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/api/exams").hasAnyRole("TEACHER", "ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/exams/*").hasAnyRole("TEACHER", "ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/exams/my").hasAnyRole("TEACHER", "ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/exams/*").hasAnyRole("TEACHER", "ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/exams/*").hasRole("TEACHER")
-                        .requestMatchers(HttpMethod.PATCH, "/api/exams/**").hasAnyRole("TEACHER", "ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/api/exams/*/problems").hasAnyRole("TEACHER", "ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/exams/*/problems").hasAnyRole("TEACHER", "ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/exams/*/problems/*").hasAnyRole("TEACHER", "ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/exams/*/problems/*").hasAnyRole("TEACHER", "ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/exams/*/problems/*").hasAnyRole("TEACHER", "ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/api/exams/*/problems/*/enable").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/api/exams/*/problems/*/test-cases").hasAnyRole("TEACHER", "ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/exams/*/problems/*/test-cases").hasAnyRole("TEACHER", "ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/exams/*/problems/*/test-cases/*").hasAnyRole("TEACHER", "ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/api/exams/*/problems/*/test-cases/*/hotfix").hasRole("ADMIN")
+
+                        // ── TEACHER + ADMIN ─────────────────────────────────────────
+                        .requestMatchers(HttpMethod.GET,    "/api/exams/my").hasAnyRole("TEACHER", "ADMIN")
+                        .requestMatchers(HttpMethod.POST,   "/api/exams").hasAnyRole("TEACHER", "ADMIN")
+                        .requestMatchers(HttpMethod.GET,    "/api/exams/*").hasAnyRole("TEACHER", "ADMIN")
+                        .requestMatchers(HttpMethod.PUT,    "/api/exams/*").hasAnyRole("TEACHER", "ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/exams/*").hasRole("TEACHER")
+                        .requestMatchers(HttpMethod.PATCH,  "/api/exams/**").hasAnyRole("TEACHER", "ADMIN")
+
+                        .requestMatchers(HttpMethod.POST,   "/api/exams/*/problems").hasAnyRole("TEACHER", "ADMIN")
+                        .requestMatchers(HttpMethod.GET,    "/api/exams/*/problems").hasAnyRole("TEACHER", "ADMIN")
+                        .requestMatchers(HttpMethod.GET,    "/api/exams/*/problems/*").hasAnyRole("TEACHER", "ADMIN")
+                        .requestMatchers(HttpMethod.PUT,    "/api/exams/*/problems/*").hasAnyRole("TEACHER", "ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/exams/*/problems/*").hasAnyRole("TEACHER", "ADMIN")
+
+                        .requestMatchers(HttpMethod.POST,   "/api/exams/*/problems/*/test-cases").hasAnyRole("TEACHER", "ADMIN")
+                        .requestMatchers(HttpMethod.GET,    "/api/exams/*/problems/*/test-cases").hasAnyRole("TEACHER", "ADMIN")
+                        .requestMatchers(HttpMethod.PUT,    "/api/exams/*/problems/*/test-cases/*").hasAnyRole("TEACHER", "ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/exams/*/problems/*/test-cases/*").hasAnyRole("TEACHER", "ADMIN")
 
                         .anyRequest().authenticated()
