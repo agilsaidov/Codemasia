@@ -12,10 +12,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -23,6 +20,7 @@ import java.util.UUID;
 @Entity
 @AllArgsConstructor @NoArgsConstructor
 @Getter @Setter
+@Builder
 @Table(name = "exam_sessions")
 public class ExamSession {
     @Id
@@ -35,7 +33,7 @@ public class ExamSession {
     private Exam exam;
 
     @Column(name = "exam_title", nullable = false, length = 200)
-    private String examTitle;
+    private String examSessionTitle;
 
     @Column(name = "group_id", nullable = false, length = 20)
     private String groupId;
@@ -49,38 +47,49 @@ public class ExamSession {
     @Column(name = "ends_at")
     private OffsetDateTime endsAt;
 
+    @Builder.Default
     @Column(name = "enabled", nullable = false)
     private Boolean enabled = true;
 
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 10)
     private SessionStatus status = SessionStatus.SCHEDULED;
 
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(name = "selection_mode", nullable = false, length = 10)
     private SelectionMode selectionMode = SelectionMode.RANDOM;
 
+    @Builder.Default
     @Column(name = "use_difficulty_tiers", nullable = false)
     private Boolean useDifficultyTiers = false;
 
+    @Builder.Default
     @Column(name = "question_quota", nullable = false)
     private Integer questionQuota = 0;
 
+    @Builder.Default
     @Column(name = "easy_quota", nullable = false)
     private Integer easyQuota = 0;
 
+    @Builder.Default
     @Column(name = "medium_quota", nullable = false)
     private Integer mediumQuota = 0;
 
+    @Builder.Default
     @Column(name = "hard_quota", nullable = false)
     private Integer hardQuota = 0;
 
+    @Builder.Default
     @Column(name = "max_question_changes", nullable = false)
     private Integer maxQuestionChanges = 0;
 
+    @Builder.Default
     @Column(name = "max_cheat_events", nullable = false)
     private Integer maxCheatEvents = 0;
 
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(name = "cheat_block_mode", nullable = false, length = 20)
     private CheatBlockMode cheatBlockMode = CheatBlockMode.SUBMIT_BLOCKED;

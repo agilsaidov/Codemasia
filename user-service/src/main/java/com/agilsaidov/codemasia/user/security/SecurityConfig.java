@@ -37,6 +37,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/users/**").hasRole("ADMIN")
                         .requestMatchers("/api/groups/my").hasAnyRole("TEACHER", "ADMIN")
                         .requestMatchers("/api/groups").hasAnyRole("ADMIN", "TEACHER")
+                        .requestMatchers(HttpMethod.GET, "/api/groups/*").hasAnyRole("TEACHER", "ADMIN")
                         .requestMatchers("/api/groups/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 );

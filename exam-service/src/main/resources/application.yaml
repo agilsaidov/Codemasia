@@ -12,3 +12,7 @@ spring:
     url: ${EXAM_DB_URL}
     username: ${EXAM_DB_USER}
     password: ${EXAM_DB_PASSWORD}
+
+app:
+  user-service:
+    base-url: http://localhost:8082
