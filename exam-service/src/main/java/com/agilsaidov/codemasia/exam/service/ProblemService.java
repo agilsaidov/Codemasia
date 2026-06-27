@@ -58,12 +58,12 @@ public class ProblemService {
     @Transactional(readOnly = true)
     public Page<ProblemSummary> getProblems(String examId, UUID creatorId, String role, String title,
                                             Difficulty difficulty, OffsetDateTime createdAt,
-                                            Integer point, Boolean enabled, int page, int size) {
+                                            Boolean enabled, int page, int size) {
 
         Boolean enabledFilter = role.equals("TEACHER") ? Boolean.TRUE : enabled;
 
-        log.debug("Fetching problems: exam={} role={} creatorId={} title={} difficulty={} point={} enabled={} page={} size={}",
-                examId, role, creatorId, title, difficulty, point, enabledFilter, page, size);
+        log.debug("Fetching problems: exam={} role={} creatorId={} title={} difficulty={} enabled={} page={} size={}",
+                examId, role, creatorId, title, difficulty, enabledFilter, page, size);
 
         if (role.equals("TEACHER")) {
             getOwnedEnabledExam(creatorId, examId);
@@ -72,7 +72,7 @@ public class ProblemService {
         }
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<ProblemSummary> result = problemRepository
-                .findAll(ProblemSpec.withFilters(examId, title, difficulty, createdAt, point, enabledFilter), pageable)
+                .findAll(ProblemSpec.withFilters(examId, title, difficulty, createdAt, enabledFilter), pageable)
                 .map(problemMapper::toProblemSummary);
         log.debug("Fetched {} problem(s) for exam={} by creator={} role={}", result.getTotalElements(), examId, creatorId, role);
         return result;
@@ -109,7 +109,6 @@ public class ProblemService {
 
         Problem problem = getExamProblem(examId, problemId);
 
-        Integer previousPoint = problem.getPoint();
         Integer previousTimeLimitMs = problem.getTimeLimitMs();
         Integer previousMemoryLimitKb = problem.getMemoryLimitKb();
         Difficulty previousDifficulty = problem.getDifficulty();
@@ -118,20 +117,17 @@ public class ProblemService {
         problem.setStatement(request.getStatement());
         problem.setTimeLimitMs(request.getTimeLimitMs());
         problem.setMemoryLimitKb(request.getMemoryLimitKb());
-        problem.setPoint(request.getPoint());
         problem.setDifficulty(request.getDifficulty());
 
         Problem saved = problemRepository.save(problem);
         log.info("Problem={} updated in exam={} by user={} role={}", problemId, examId, creatorId, role);
 
-        if (!Objects.equals(previousPoint, saved.getPoint())
-                || !Objects.equals(previousTimeLimitMs, saved.getTimeLimitMs())
+        if (!Objects.equals(previousTimeLimitMs, saved.getTimeLimitMs())
                 || !Objects.equals(previousMemoryLimitKb, saved.getMemoryLimitKb())
                 || previousDifficulty != saved.getDifficulty()) {
             log.info(
-                    "Problem={} scoring/limits changed in exam={} by user={} role={}: point {} -> {}, timeLimitMs {} -> {}, memoryLimitKb {} -> {}, difficulty {} -> {}",
+                    "Problem={} metadata/limits changed in exam={} by user={} role={}: timeLimitMs {} -> {}, memoryLimitKb {} -> {}, difficulty {} -> {}",
                     problemId, examId, creatorId, role,
-                    previousPoint, saved.getPoint(),
                     previousTimeLimitMs, saved.getTimeLimitMs(),
                     previousMemoryLimitKb, saved.getMemoryLimitKb(),
                     previousDifficulty, saved.getDifficulty()

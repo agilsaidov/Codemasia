@@ -27,10 +27,6 @@ public class CreateProblemRequest {
     @Max(value = 1_048_576, message = "Field 'memoryLimitKb' cannot exceed 1048576")
     private Integer memoryLimitKb;
 
-    @Min(value = 0, message = "Field 'point' cannot be negative")
-    @Max(value = 50, message = "Field 'point' cannot exceed 50")
-    private Integer point;
-
     @NotNull(message = "Field 'difficulty' is required")
     private Difficulty difficulty;
 }

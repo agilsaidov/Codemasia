@@ -8,6 +8,5 @@ import lombok.Setter;
 public class ProblemSummary {
     private Long problemId;
     private String title;
-    private Integer point;
     private Difficulty difficulty;
 }

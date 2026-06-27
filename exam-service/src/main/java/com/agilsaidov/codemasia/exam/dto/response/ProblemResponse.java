@@ -14,7 +14,6 @@ public class ProblemResponse {
     private String statement;
     private Integer timeLimitMs;
     private Integer memoryLimitKb;
-    private Integer point;
     private Difficulty difficulty;
     private Boolean enabled;
     private OffsetDateTime createdAt;

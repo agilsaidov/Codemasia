@@ -12,7 +12,7 @@ import java.util.List;
 public final class ProblemSpec {
     public static Specification<Problem> withFilters(String examId, String title,
                                                      Difficulty difficulty, OffsetDateTime createdAt,
-                                                     Integer point, Boolean enabled) {
+                                                     Boolean enabled) {
 
         return ((root, query, criteriaBuilder) -> {
 
@@ -35,10 +35,6 @@ public final class ProblemSpec {
 
             if(difficulty != null) {
                 predicates.add(criteriaBuilder.equal(root.get("difficulty"), difficulty));
-            }
-
-            if(point != null) {
-                predicates.add(criteriaBuilder.equal(root.get("point"), point));
             }
 
             if (createdAt != null) {

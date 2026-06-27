@@ -41,13 +41,12 @@ public class ProblemController {
                                                             @RequestParam(required = false) String title,
                                                             @RequestParam(required = false) Difficulty difficulty,
                                                             @RequestParam(required = false) OffsetDateTime createdAt,
-                                                            @RequestParam(required = false) Integer point,
                                                             @RequestParam(required = false) Boolean enabled,
                                                             @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page parameter cannot be negative") int page,
                                                             @RequestParam(defaultValue = "10") @Min(value = 1, message = "Size parameter must be at least 1") int size) {
 
         return ResponseEntity.ok(problemService.getProblems(examId, creatorId, role,
-                title, difficulty, createdAt, point, enabled, page, size));
+                title, difficulty, createdAt, enabled, page, size));
     }
 
 
