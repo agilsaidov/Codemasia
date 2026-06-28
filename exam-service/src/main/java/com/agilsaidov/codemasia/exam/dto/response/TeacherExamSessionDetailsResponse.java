@@ -32,10 +32,15 @@ public class TeacherExamSessionDetailsResponse {
     // rules
     private SelectionMode selectionMode;
     private Boolean useDifficultyTiers;
+    private Double totalExamPoint;
     private Integer questionQuota;
+    private Double questionQuotaPoint;
     private Integer easyQuota;
+    private Double easyQuotaPoint;
     private Integer mediumQuota;
+    private Double mediumQuotaPoint;
     private Integer hardQuota;
+    private Double hardQuotaPoint;
     private Integer maxQuestionChanges;
     private Integer maxCheatEvents;
     private CheatBlockMode cheatBlockMode;

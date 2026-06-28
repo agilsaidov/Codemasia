@@ -3,6 +3,7 @@ package com.agilsaidov.codemasia.exam.service;
 import com.agilsaidov.codemasia.exam.client.GroupClient;
 import com.agilsaidov.codemasia.exam.dto.clientdto.response.GroupDetails;
 import com.agilsaidov.codemasia.exam.dto.request.CreateExamSessionRequest;
+import com.agilsaidov.codemasia.exam.dto.request.UpdateSessionRulesRequest;
 import com.agilsaidov.codemasia.exam.dto.response.TeacherExamSessionDetailsResponse;
 import com.agilsaidov.codemasia.exam.exception.BadRequestException;
 import com.agilsaidov.codemasia.exam.exception.ForbiddenException;
@@ -12,6 +13,7 @@ import com.agilsaidov.codemasia.exam.model.*;
 import com.agilsaidov.codemasia.exam.repository.ExamRepository;
 import com.agilsaidov.codemasia.exam.repository.ExamSessionLanguageRepository;
 import com.agilsaidov.codemasia.exam.repository.ExamSessionRepository;
+import com.agilsaidov.codemasia.exam.repository.ProblemRepository;
 import com.agilsaidov.codemasia.exam.repository.ProgrammingLanguageRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +23,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import jakarta.annotation.PostConstruct;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -31,6 +37,7 @@ public class ExamSessionService {
 
     private final ExamSessionRepository examSessionRepository;
     private final ExamRepository examRepository;
+    private final ProblemRepository problemRepository;
     private final ProgrammingLanguageRepository programmingLanguageRepository;
     private final GroupClient groupClient;
     private final ExamSessionLanguageRepository examSessionLanguageRepository;
@@ -41,6 +48,8 @@ public class ExamSessionService {
 
     private static final List<SessionStatus> ACTIVE_SESSION_STATUSES =
             List.of(SessionStatus.SCHEDULED, SessionStatus.ACTIVE);
+
+    private static final int POINT_SCALE = 2;
 
     @PostConstruct
     void init() {
@@ -60,6 +69,10 @@ public class ExamSessionService {
         if (!Boolean.TRUE.equals(exam.getPublishReady())) {
             throw new BadRequestException("EXAM_NOT_PUBLISH_READY",
                     "Exam must be publish-ready before creating a session");
+        }
+
+        if(OffsetDateTime.now().isAfter(request.getStartsAt())){
+            throw new BadRequestException("INVALID_TIME", "You can't create a session in the past");
         }
 
         if (!request.getStartsAt().isBefore(request.getEndsAt())) {
@@ -115,39 +128,90 @@ public class ExamSessionService {
 
         examSessionLanguageRepository.saveAll(examSessionLanguages);
 
-        return TeacherExamSessionDetailsResponse.builder()
-                .examSessionId(savedSession.getExamSessionId())
-                .examSessionTitle(savedSession.getExamSessionTitle())
-                .examId(exam.getExamId())
-                .examTitle(exam.getTitle())
-                .groupId(groupDetails.getGroupId())
-                .groupName(groupDetails.getName())
-                .startsAt(savedSession.getStartsAt())
-                .endsAt(savedSession.getEndsAt())
-                .status(savedSession.getStatus())
-                .publishReady(exam.getPublishReady())
-                .selectionMode(savedSession.getSelectionMode())
-                .useDifficultyTiers(savedSession.getUseDifficultyTiers())
-                .questionQuota(savedSession.getQuestionQuota())
-                .easyQuota(savedSession.getEasyQuota())
-                .mediumQuota(savedSession.getMediumQuota())
-                .hardQuota(savedSession.getHardQuota())
-                .maxQuestionChanges(savedSession.getMaxQuestionChanges())
-                .maxCheatEvents(savedSession.getMaxCheatEvents())
-                .cheatBlockMode(savedSession.getCheatBlockMode())
-                .createdAt(savedSession.getCreatedAt())
-                .updatedAt(savedSession.getUpdatedAt())
-                .programmingLanguages(
-                        programmingLanguages.stream()
-                                .map(programmingLanguageMapper::toProgrammingLanguageResponse)
-                                .toList()
-                )
-                .build();
+        return toTeacherExamSessionDetailsResponse(savedSession, exam, examSessionLanguages, groupDetails);
+
     }
 
 
 
 
+    public TeacherExamSessionDetailsResponse updateExamSessionRules(UUID creatorId, String role, Long sessionId, UpdateSessionRulesRequest request) {
+        log.debug("Updating rules for exam session={} by creator={}", sessionId, creatorId);
+
+        ExamSession examSession = "TEACHER".equals(role)
+                ? getOwnedAssignedExamSession(creatorId, sessionId)
+                : getExamSession(sessionId);
+
+        ensureSessionRulesUpdatable(examSession);
+
+        Exam exam = examSession.getExam();
+
+        if (!Boolean.TRUE.equals(exam.getPublishReady())) {
+            throw new BadRequestException(
+                    "EXAM_NOT_PUBLISH_READY",
+                    "Exam must be publish-ready before updating session rules"
+            );
+        }
+
+        GroupDetails groupDetails = groupClient.getGroupById(examSession.getGroupId(), creatorId, role);
+
+        TeacherExamSessionDetailsResponse response = transactionTemplate.execute(status -> {
+            validateSessionRules(exam, request);
+            return persistSessionRules(groupDetails, examSession, exam, request);
+        });
+
+        log.info("Updated rules for exam session={} by creator={}", sessionId, creatorId);
+
+        return response;
+    }
+
+
+
+    private TeacherExamSessionDetailsResponse persistSessionRules(GroupDetails groupDetails,
+                                                                 ExamSession examSession,
+                                                                 Exam exam,
+                                                                 UpdateSessionRulesRequest request) {
+
+        examSession.setSelectionMode(request.getSelectionMode());
+        examSession.setUseDifficultyTiers(request.getUseDifficultyTiers());
+        examSession.setTotalExamPoint(fromPoints(request.getTotalExamPoint()));
+
+        persistSelectionQuotas(examSession, exam.getExamId(), request);
+        persistPointSettings(examSession, request);
+
+        examSession.setMaxQuestionChanges(request.getMaxQuestionChanges());
+        examSession.setMaxCheatEvents(request.getMaxCheatEvents());
+        examSession.setCheatBlockMode(request.getCheatBlockMode());
+
+        ExamSession updatedSession = examSessionRepository.save(examSession);
+
+        List<ExamSessionLanguage> examSessionLanguages =
+                examSessionLanguageRepository.findAllBySessionIdWithLanguages(updatedSession.getExamSessionId());
+
+        return toTeacherExamSessionDetailsResponse(updatedSession, exam, examSessionLanguages, groupDetails);
+    }
+
+
+
+    @Transactional(readOnly = true)
+    public TeacherExamSessionDetailsResponse getExamSessionDetails(UUID userId, String role, Long sessionId) {
+        log.debug("Fetching exam session={} for user={} role={}", sessionId, userId, role);
+
+        ExamSession examSession = "TEACHER".equals(role)
+                ? getOwnedAssignedExamSession(userId, sessionId)
+                : getExamSession(sessionId);
+
+        Exam exam = examSession.getExam();
+        GroupDetails groupDetails = groupClient.getGroupById(examSession.getGroupId(), userId, role);
+        List<ExamSessionLanguage> examSessionLanguages =
+                examSessionLanguageRepository.findAllBySessionIdWithLanguages(sessionId);
+
+        log.debug("Fetched exam session={} for user={} role={}", sessionId, userId, role);
+        return toTeacherExamSessionDetailsResponse(examSession, exam, examSessionLanguages, groupDetails);
+    }
+
+
+    //Service internal methods
     @Transactional
     public SessionCascadeResult cascadeOnExamDelete(Exam exam) {
         String examId = exam.getExamId();
@@ -258,6 +322,448 @@ public class ExamSessionService {
                             "EXAM_NOT_FOUND",
                             "Exam with id " + examId + " not found");
                 });
+    }
+
+    private ExamSession getExamSession(Long sessionId) {
+        return examSessionRepository.findById(sessionId)
+                .orElseThrow(() -> {
+                    log.warn("Exam session={} not found", sessionId);
+                    return new NotFoundException(
+                            "EXAM_SESSION_NOT_FOUND",
+                            "Session with id: " + sessionId + " not found");
+                });
+    }
+
+    private ExamSession getOwnedAssignedExamSession(UUID creatorId, Long sessionId) {
+        ExamSession examSession = getExamSession(sessionId);
+
+        if (!creatorId.equals(examSession.getAssignedBy())) {
+            log.warn("Access denied: creator={} is not assigner of session={}", creatorId, sessionId);
+            throw new ForbiddenException("ACCESS_DENIED", "You do not have permission to access this resource");
+        }
+
+        getOwnedEnabledExam(creatorId, examSession.getExam().getExamId());
+        return examSession;
+    }
+
+    private void ensureSessionRulesUpdatable(ExamSession examSession) {
+        SessionStatus status = examSession.getStatus();
+        OffsetDateTime now = OffsetDateTime.now();
+
+        if (status == SessionStatus.FINISHED || status == SessionStatus.CANCELLED) {
+            throw new ForbiddenException(
+                    "UPDATE_NOT_ALLOWED",
+                    "You can't update a finished or cancelled exam session"
+            );
+        }
+
+        OffsetDateTime startsAt = examSession.getStartsAt();
+        if (startsAt != null && !now.isBefore(startsAt)) {
+            throw new ForbiddenException(
+                    "UPDATE_NOT_ALLOWED",
+                    "You can't update an exam session once it has started"
+            );
+        }
+    }
+
+
+    private void validateSessionRules(Exam exam, UpdateSessionRulesRequest request) {
+        String examId = exam.getExamId();
+        BigDecimal totalExamPoint = toPoints(request.getTotalExamPoint());
+        validatePositiveTotalExamPoint(totalExamPoint);
+
+        if (request.getSelectionMode() == SelectionMode.FIXED) {
+            validateSelectionQuotasAreZero(request);
+            if (Boolean.TRUE.equals(request.getUseDifficultyTiers())) {
+                validateTierPointsOnly(request);
+                validateEnabledProblemsHaveDifficulty(examId);
+                validateFixedTierPoints(examId, request, totalExamPoint);
+            } else {
+                validateFlatPointsOnly(request);
+                validateFixedFlatPoints(examId, request, totalExamPoint);
+            }
+            return;
+        }
+
+        if (Boolean.TRUE.equals(request.getUseDifficultyTiers())) {
+            validateEnabledProblemsHaveDifficulty(examId);
+            validateRandomTierQuotas(examId, request);
+            validateTierPointsOnly(request);
+            validateRandomTierPoints(request, totalExamPoint);
+            return;
+        }
+
+        validateFlatPointsOnly(request);
+        validateRandomFlatQuotas(examId, request);
+        validateRandomFlatPoints(request, totalExamPoint);
+    }
+
+    private void validatePositiveTotalExamPoint(BigDecimal totalExamPoint) {
+        if (totalExamPoint.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BadRequestException(
+                    "INVALID_TOTAL_POINT",
+                    "Total exam point must be greater than zero"
+            );
+        }
+    }
+
+    private void validateSelectionQuotasAreZero(UpdateSessionRulesRequest request) {
+        if (request.getQuestionQuota() > 0
+                || request.getEasyQuota() > 0
+                || request.getMediumQuota() > 0
+                || request.getHardQuota() > 0) {
+            throw new BadRequestException(
+                    "INVALID_QUOTAS",
+                    "Selection quotas must be zero when selection mode is FIXED"
+            );
+        }
+    }
+
+    private void validateTierPointsOnly(UpdateSessionRulesRequest request) {
+        requireZeroPoint(request.getQuestionQuotaPoint(), "questionQuotaPoint");
+        requireZeroTierQuotasWhenTierPointsMode(request);
+    }
+
+    private void validateFlatPointsOnly(UpdateSessionRulesRequest request) {
+        requireZeroPoint(request.getEasyQuotaPoint(), "easyQuotaPoint");
+        requireZeroPoint(request.getMediumQuotaPoint(), "mediumQuotaPoint");
+        requireZeroPoint(request.getHardQuotaPoint(), "hardQuotaPoint");
+        requireZeroTierQuotasWhenFlatMode(request);
+    }
+
+    private void requireZeroTierQuotasWhenTierPointsMode(UpdateSessionRulesRequest request) {
+        if (request.getQuestionQuota() > 0) {
+            throw new BadRequestException(
+                    "INVALID_QUOTAS",
+                    "Question quota must be zero when difficulty tiers are enabled"
+            );
+        }
+    }
+
+    private void requireZeroTierQuotasWhenFlatMode(UpdateSessionRulesRequest request) {
+        if (request.getEasyQuota() > 0 || request.getMediumQuota() > 0 || request.getHardQuota() > 0) {
+            throw new BadRequestException(
+                    "INVALID_QUOTAS",
+                    "Difficulty tier quotas must be zero when difficulty tiers are disabled"
+            );
+        }
+    }
+
+    private void validateRandomTierQuotas(String examId, UpdateSessionRulesRequest request) {
+        int easyQuota = request.getEasyQuota();
+        int mediumQuota = request.getMediumQuota();
+        int hardQuota = request.getHardQuota();
+        int tierTotal = easyQuota + mediumQuota + hardQuota;
+
+        if (tierTotal <= 0) {
+            throw new BadRequestException(
+                    "INVALID_QUOTAS",
+                    "At least one difficulty tier quota must be greater than zero"
+            );
+        }
+
+        validateTierQuota(examId, Difficulty.EASY, easyQuota);
+        validateTierQuota(examId, Difficulty.MEDIUM, mediumQuota);
+        validateTierQuota(examId, Difficulty.HARD, hardQuota);
+        validateTierPointRequiresTierQuota(request);
+        requirePointPositiveWhenQuotaPositive(request);
+    }
+
+    private void requirePointPositiveWhenQuotaPositive(UpdateSessionRulesRequest request) {
+        requirePointPositiveWhenQuotaPositive(request.getEasyQuota(), request.getEasyQuotaPoint(), "easy");
+        requirePointPositiveWhenQuotaPositive(request.getMediumQuota(), request.getMediumQuotaPoint(), "medium");
+        requirePointPositiveWhenQuotaPositive(request.getHardQuota(), request.getHardQuotaPoint(), "hard");
+    }
+
+    private void requirePointPositiveWhenQuotaPositive(int quota, Double point, String tierName) {
+        if (quota > 0 && toPoints(point).compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BadRequestException(
+                    "INVALID_POINTS",
+                    tierName + " quota point must be greater than zero when " + tierName + " quota is greater than zero"
+            );
+        }
+    }
+
+    private void validateTierPointRequiresTierQuota(UpdateSessionRulesRequest request) {
+        requirePointZeroWhenQuotaZero(request.getEasyQuota(), request.getEasyQuotaPoint(), "easy");
+        requirePointZeroWhenQuotaZero(request.getMediumQuota(), request.getMediumQuotaPoint(), "medium");
+        requirePointZeroWhenQuotaZero(request.getHardQuota(), request.getHardQuotaPoint(), "hard");
+    }
+
+    private void requirePointZeroWhenQuotaZero(int quota, Double point, String tierName) {
+        if (quota == 0 && toPoints(point).compareTo(BigDecimal.ZERO) != 0) {
+            throw new BadRequestException(
+                    "INVALID_POINTS",
+                    tierName + " quota point must be zero when " + tierName + " quota is zero"
+            );
+        }
+    }
+
+    private void validateRandomTierPoints(UpdateSessionRulesRequest request, BigDecimal totalExamPoint) {
+        BigDecimal calculatedTotal = BigDecimal.ZERO
+                .add(pointsForQuota(request.getEasyQuota(), request.getEasyQuotaPoint()))
+                .add(pointsForQuota(request.getMediumQuota(), request.getMediumQuotaPoint()))
+                .add(pointsForQuota(request.getHardQuota(), request.getHardQuotaPoint()));
+        assertTotalPointsMatch(totalExamPoint, calculatedTotal);
+    }
+
+    private void validateRandomFlatQuotas(String examId, UpdateSessionRulesRequest request) {
+        int questionQuota = request.getQuestionQuota();
+        if (questionQuota <= 0) {
+            throw new BadRequestException(
+                    "INVALID_QUOTAS",
+                    "Question quota must be greater than zero when difficulty tiers are disabled"
+            );
+        }
+
+        int availableProblems = problemRepository.countByExam_ExamIdAndEnabledTrue(examId);
+        if (questionQuota > availableProblems) {
+            throw new BadRequestException(
+                    "INVALID_QUOTAS",
+                    "Question quota exceeds available problems in the exam bank"
+            );
+        }
+
+        if (toPoints(request.getQuestionQuotaPoint()).compareTo(BigDecimal.ZERO) == 0) {
+            throw new BadRequestException(
+                    "INVALID_POINTS",
+                    "Question quota point must be greater than zero when question quota is greater than zero"
+            );
+        }
+    }
+
+    private void validateRandomFlatPoints(UpdateSessionRulesRequest request, BigDecimal totalExamPoint) {
+        BigDecimal calculatedTotal = pointsForQuota(request.getQuestionQuota(), request.getQuestionQuotaPoint());
+        assertTotalPointsMatch(totalExamPoint, calculatedTotal);
+    }
+
+    private void validateEnabledProblemsHaveDifficulty(String examId) {
+        if (problemRepository.countByExam_ExamIdAndEnabledTrueAndDifficultyIsNull(examId) > 0) {
+            throw new BadRequestException(
+                    "UNTAGGED_PROBLEMS",
+                    "All enabled problems must have a difficulty when difficulty tiers are used for points"
+            );
+        }
+    }
+
+    private void validateFixedTierPoints(String examId,
+                                         UpdateSessionRulesRequest request,
+                                         BigDecimal totalExamPoint) {
+        int easyCount = problemRepository.countByExam_ExamIdAndEnabledTrueAndDifficulty(examId, Difficulty.EASY);
+        int mediumCount = problemRepository.countByExam_ExamIdAndEnabledTrueAndDifficulty(examId, Difficulty.MEDIUM);
+        int hardCount = problemRepository.countByExam_ExamIdAndEnabledTrueAndDifficulty(examId, Difficulty.HARD);
+
+        if (easyCount + mediumCount + hardCount <= 0) {
+            throw new BadRequestException(
+                    "INVALID_POINTS",
+                    "Exam must contain at least one enabled problem with a difficulty tier"
+            );
+        }
+
+        requirePointPositiveWhenBankCountPositive(easyCount, request.getEasyQuotaPoint(), "easy");
+        requirePointPositiveWhenBankCountPositive(mediumCount, request.getMediumQuotaPoint(), "medium");
+        requirePointPositiveWhenBankCountPositive(hardCount, request.getHardQuotaPoint(), "hard");
+        requirePointZeroWhenBankCountZero(easyCount, request.getEasyQuotaPoint(), "easy");
+        requirePointZeroWhenBankCountZero(mediumCount, request.getMediumQuotaPoint(), "medium");
+        requirePointZeroWhenBankCountZero(hardCount, request.getHardQuotaPoint(), "hard");
+
+        BigDecimal calculatedTotal = BigDecimal.ZERO
+                .add(pointsForQuota(easyCount, request.getEasyQuotaPoint()))
+                .add(pointsForQuota(mediumCount, request.getMediumQuotaPoint()))
+                .add(pointsForQuota(hardCount, request.getHardQuotaPoint()));
+        assertTotalPointsMatch(totalExamPoint, calculatedTotal);
+    }
+
+    private void validateFixedFlatPoints(String examId,
+                                         UpdateSessionRulesRequest request,
+                                         BigDecimal totalExamPoint) {
+        int enabledProblems = problemRepository.countByExam_ExamIdAndEnabledTrue(examId);
+        if (enabledProblems <= 0) {
+            throw new BadRequestException(
+                    "INVALID_POINTS",
+                    "Exam must contain at least one enabled problem"
+            );
+        }
+
+        if (toPoints(request.getQuestionQuotaPoint()).compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BadRequestException(
+                    "INVALID_POINTS",
+                    "Question quota point must be greater than zero"
+            );
+        }
+
+        BigDecimal calculatedTotal = pointsForQuota(enabledProblems, request.getQuestionQuotaPoint());
+        assertTotalPointsMatch(totalExamPoint, calculatedTotal);
+    }
+
+    private void requirePointPositiveWhenBankCountPositive(int bankCount, Double point, String tierName) {
+        if (bankCount > 0 && toPoints(point).compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BadRequestException(
+                    "INVALID_POINTS",
+                    tierName + " quota point must be greater than zero when the exam contains "
+                            + tierName + " problems"
+            );
+        }
+    }
+
+    private void requirePointZeroWhenBankCountZero(int bankCount, Double point, String tierName) {
+        if (bankCount == 0 && toPoints(point).compareTo(BigDecimal.ZERO) != 0) {
+            throw new BadRequestException(
+                    "INVALID_POINTS",
+                    tierName + " quota point must be zero when the exam contains no "
+                            + tierName + " problems"
+            );
+        }
+    }
+
+    private void requireZeroPoint(Double point, String fieldName) {
+        if (toPoints(point).compareTo(BigDecimal.ZERO) != 0) {
+            throw new BadRequestException(
+                    "INVALID_POINTS",
+                    "Field '" + fieldName + "' must be zero for the selected rules configuration"
+            );
+        }
+    }
+
+    private BigDecimal pointsForQuota(int quota, Double pointPerQuota) {
+        return toPoints(pointPerQuota)
+                .multiply(BigDecimal.valueOf(quota))
+                .setScale(POINT_SCALE, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal toPoints(Double value) {
+        return new BigDecimal(String.valueOf(value)).setScale(POINT_SCALE, RoundingMode.HALF_UP);
+    }
+
+    private double fromPoints(Double value) {
+        return toPoints(value).doubleValue();
+    }
+
+    private void persistSelectionQuotas(ExamSession examSession, String examId, UpdateSessionRulesRequest request) {
+        if (request.getSelectionMode() == SelectionMode.FIXED) {
+            persistFixedSelectionQuotas(examSession, examId, request);
+            return;
+        }
+
+        persistRandomSelectionQuotas(examSession, request);
+    }
+
+    private void persistFixedSelectionQuotas(ExamSession examSession,
+                                             String examId,
+                                             UpdateSessionRulesRequest request) {
+        if (Boolean.TRUE.equals(request.getUseDifficultyTiers())) {
+            int easyCount = problemRepository.countByExam_ExamIdAndEnabledTrueAndDifficulty(examId, Difficulty.EASY);
+            int mediumCount = problemRepository.countByExam_ExamIdAndEnabledTrueAndDifficulty(examId, Difficulty.MEDIUM);
+            int hardCount = problemRepository.countByExam_ExamIdAndEnabledTrueAndDifficulty(examId, Difficulty.HARD);
+
+            examSession.setEasyQuota(easyCount);
+            examSession.setMediumQuota(mediumCount);
+            examSession.setHardQuota(hardCount);
+            examSession.setQuestionQuota(easyCount + mediumCount + hardCount);
+            return;
+        }
+
+        int enabledProblems = problemRepository.countByExam_ExamIdAndEnabledTrue(examId);
+        examSession.setQuestionQuota(enabledProblems);
+        examSession.setEasyQuota(0);
+        examSession.setMediumQuota(0);
+        examSession.setHardQuota(0);
+    }
+
+    private void persistRandomSelectionQuotas(ExamSession examSession, UpdateSessionRulesRequest request) {
+        if (Boolean.TRUE.equals(request.getUseDifficultyTiers())) {
+            examSession.setEasyQuota(request.getEasyQuota());
+            examSession.setMediumQuota(request.getMediumQuota());
+            examSession.setHardQuota(request.getHardQuota());
+            examSession.setQuestionQuota(
+                    request.getEasyQuota() + request.getMediumQuota() + request.getHardQuota()
+            );
+            return;
+        }
+
+        examSession.setQuestionQuota(request.getQuestionQuota());
+        examSession.setEasyQuota(0);
+        examSession.setMediumQuota(0);
+        examSession.setHardQuota(0);
+    }
+
+    private void persistPointSettings(ExamSession examSession, UpdateSessionRulesRequest request) {
+        if (Boolean.TRUE.equals(request.getUseDifficultyTiers())) {
+            examSession.setQuestionQuotaPoint(0.0);
+            examSession.setEasyQuotaPoint(fromPoints(request.getEasyQuotaPoint()));
+            examSession.setMediumQuotaPoint(fromPoints(request.getMediumQuotaPoint()));
+            examSession.setHardQuotaPoint(fromPoints(request.getHardQuotaPoint()));
+            return;
+        }
+
+        examSession.setQuestionQuotaPoint(fromPoints(request.getQuestionQuotaPoint()));
+        examSession.setEasyQuotaPoint(0.0);
+        examSession.setMediumQuotaPoint(0.0);
+        examSession.setHardQuotaPoint(0.0);
+    }
+
+    private void assertTotalPointsMatch(BigDecimal expectedTotal, BigDecimal actualTotal) {
+        if (expectedTotal.compareTo(actualTotal) != 0) {
+            throw new BadRequestException(
+                    "UNMATCHED_TOTAL_POINT",
+                    "Sum of quota and point settings does not match total exam point "
+                            + "(expected total: " + expectedTotal + ", actual total: " + actualTotal + ")"
+            );
+        }
+    }
+
+    private void validateTierQuota(String examId, Difficulty difficulty, int quota) {
+        if (quota == 0) {
+            return;
+        }
+
+        int available = problemRepository.countByExam_ExamIdAndEnabledTrueAndDifficulty(examId, difficulty);
+        if (quota > available) {
+            throw new BadRequestException(
+                    "INVALID_QUOTAS",
+                    difficulty.name().toLowerCase() + " quota exceeds available "
+                            + difficulty.name().toLowerCase() + " problems in the exam bank"
+            );
+        }
+    }
+
+
+    private TeacherExamSessionDetailsResponse toTeacherExamSessionDetailsResponse(ExamSession examSession, Exam exam,
+                                                                                  List<ExamSessionLanguage> examSessionLanguages,
+                                                                                  GroupDetails groupDetails) {
+        return TeacherExamSessionDetailsResponse.builder()
+                .examSessionId(examSession.getExamSessionId())
+                .examSessionTitle(examSession.getExamSessionTitle())
+                .examId(exam.getExamId())
+                .examTitle(exam.getTitle())
+                .groupId(groupDetails.getGroupId())
+                .groupName(groupDetails.getName())
+                .startsAt(examSession.getStartsAt())
+                .endsAt(examSession.getEndsAt())
+                .status(examSession.getStatus())
+                .publishReady(exam.getPublishReady())
+                .selectionMode(examSession.getSelectionMode())
+                .useDifficultyTiers(examSession.getUseDifficultyTiers())
+                .totalExamPoint(examSession.getTotalExamPoint())
+                .questionQuota(examSession.getQuestionQuota())
+                .questionQuotaPoint(examSession.getQuestionQuotaPoint())
+                .easyQuota(examSession.getEasyQuota())
+                .easyQuotaPoint(examSession.getEasyQuotaPoint())
+                .mediumQuota(examSession.getMediumQuota())
+                .mediumQuotaPoint(examSession.getMediumQuotaPoint())
+                .hardQuota(examSession.getHardQuota())
+                .hardQuotaPoint(examSession.getHardQuotaPoint())
+                .maxQuestionChanges(examSession.getMaxQuestionChanges())
+                .maxCheatEvents(examSession.getMaxCheatEvents())
+                .cheatBlockMode(examSession.getCheatBlockMode())
+                .createdAt(examSession.getCreatedAt())
+                .updatedAt(examSession.getUpdatedAt())
+                .programmingLanguages(
+                        examSessionLanguages.stream()
+                                .map(esl -> programmingLanguageMapper.toProgrammingLanguageResponse(esl.getLanguage()))
+                                .toList()
+                )
+                .build();
     }
 
     private List<ProgrammingLanguage> getProgrammingLanguages(List<Integer> languageIds) {

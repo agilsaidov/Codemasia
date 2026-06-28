@@ -65,21 +65,51 @@ public class ExamSession {
     @Column(name = "use_difficulty_tiers", nullable = false)
     private Boolean useDifficultyTiers = false;
 
+    //------- Points & Quota -------
+    @Builder.Default
+    @Column(name = "total_exam_points", nullable = false)
+    private Double totalExamPoint = 50.0;
+
+
     @Builder.Default
     @Column(name = "question_quota", nullable = false)
     private Integer questionQuota = 0;
+
+    @Builder.Default
+    @Column(name = "question_quota_points", nullable = false)
+    private Double questionQuotaPoint = 0.0;
+
+
 
     @Builder.Default
     @Column(name = "easy_quota", nullable = false)
     private Integer easyQuota = 0;
 
     @Builder.Default
+    @Column(name = "easy_quota_points", nullable = false)
+    private Double easyQuotaPoint = 0.0;
+
+
+
+    @Builder.Default
     @Column(name = "medium_quota", nullable = false)
     private Integer mediumQuota = 0;
 
     @Builder.Default
+    @Column(name = "medium_quota_points", nullable = false)
+    private Double mediumQuotaPoint = 0.0;
+
+
+
+    @Builder.Default
     @Column(name = "hard_quota", nullable = false)
     private Integer hardQuota = 0;
+
+    @Builder.Default
+    @Column(name = "hard_quota_points", nullable = false)
+    private Double hardQuotaPoint = 0.0;
+
+    //-----------------------------------
 
     @Builder.Default
     @Column(name = "max_question_changes", nullable = false)

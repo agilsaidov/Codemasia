@@ -1,5 +1,6 @@
 package com.agilsaidov.codemasia.exam.repository;
 
+import com.agilsaidov.codemasia.exam.model.Difficulty;
 import com.agilsaidov.codemasia.exam.model.Problem;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -15,6 +16,10 @@ public interface ProblemRepository extends JpaRepository<Problem, Long>, JpaSpec
     int countByExam_ExamId(String examId);
 
     int countByExam_ExamIdAndEnabledTrue(String examId);
+
+    int countByExam_ExamIdAndEnabledTrueAndDifficulty(String examId, Difficulty difficulty);
+
+    int countByExam_ExamIdAndEnabledTrueAndDifficultyIsNull(String examId);
 
     Page<Problem> findAll(Specification<Problem> problemSpecification, Pageable pageable);
 
