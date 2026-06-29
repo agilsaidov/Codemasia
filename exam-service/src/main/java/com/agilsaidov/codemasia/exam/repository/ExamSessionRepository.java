@@ -31,4 +31,19 @@ public interface ExamSessionRepository extends JpaRepository<ExamSession, Long> 
                                      @Param("startsAt") OffsetDateTime startsAt,
                                      @Param("endsAt") OffsetDateTime endsAt,
                                      @Param("activeStatuses") List<SessionStatus> activeStatuses);
+
+    @Query("""
+        SELECT COUNT(e) > 0
+        FROM ExamSession e
+        WHERE e.groupId = :groupId
+          AND e.examSessionId <> :excludeSessionId
+          AND e.enabled = true
+          AND e.status IN :activeStatuses
+          AND :startsAt < e.endsAt AND :endsAt > e.startsAt
+    """)
+    boolean existsOverlappingSessionExcluding(@Param("groupId") String groupId,
+                                              @Param("startsAt") OffsetDateTime startsAt,
+                                              @Param("endsAt") OffsetDateTime endsAt,
+                                              @Param("excludeSessionId") Long excludeSessionId,
+                                              @Param("activeStatuses") List<SessionStatus> activeStatuses);
 }

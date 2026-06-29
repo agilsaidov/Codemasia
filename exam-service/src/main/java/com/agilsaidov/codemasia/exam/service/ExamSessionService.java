@@ -3,6 +3,7 @@ package com.agilsaidov.codemasia.exam.service;
 import com.agilsaidov.codemasia.exam.client.GroupClient;
 import com.agilsaidov.codemasia.exam.dto.clientdto.response.GroupDetails;
 import com.agilsaidov.codemasia.exam.dto.request.CreateExamSessionRequest;
+import com.agilsaidov.codemasia.exam.dto.request.UpdateExamSessionRequest;
 import com.agilsaidov.codemasia.exam.dto.request.UpdateSessionRulesRequest;
 import com.agilsaidov.codemasia.exam.dto.response.TeacherExamSessionDetailsResponse;
 import com.agilsaidov.codemasia.exam.exception.BadRequestException;
@@ -55,6 +56,25 @@ public class ExamSessionService {
     void init() {
         this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
+
+
+    @Transactional(readOnly = true)
+    public TeacherExamSessionDetailsResponse getExamSessionDetails(UUID userId, String role, Long sessionId) {
+        log.debug("Fetching exam session={} for user={} role={}", sessionId, userId, role);
+
+        ExamSession examSession = "TEACHER".equals(role)
+                ? getOwnedAssignedExamSession(userId, sessionId)
+                : getExamSession(sessionId);
+
+        Exam exam = examSession.getExam();
+        GroupDetails groupDetails = groupClient.getGroupById(examSession.getGroupId(), userId, role);
+        List<ExamSessionLanguage> examSessionLanguages =
+                examSessionLanguageRepository.findAllBySessionIdWithLanguages(sessionId);
+
+        log.debug("Fetched exam session={} for user={} role={}", sessionId, userId, role);
+        return toTeacherExamSessionDetailsResponse(examSession, exam, examSessionLanguages, groupDetails);
+    }
+
 
 
     public TeacherExamSessionDetailsResponse createExamSession(UUID creatorId, String role, CreateExamSessionRequest request) {
@@ -142,7 +162,7 @@ public class ExamSessionService {
                 ? getOwnedAssignedExamSession(creatorId, sessionId)
                 : getExamSession(sessionId);
 
-        ensureSessionRulesUpdatable(examSession);
+        ensureSessionUpdatable(examSession);
 
         Exam exam = examSession.getExam();
 
@@ -193,23 +213,147 @@ public class ExamSessionService {
 
 
 
-    @Transactional(readOnly = true)
-    public TeacherExamSessionDetailsResponse getExamSessionDetails(UUID userId, String role, Long sessionId) {
-        log.debug("Fetching exam session={} for user={} role={}", sessionId, userId, role);
+    public TeacherExamSessionDetailsResponse updateExamSession(UUID creatorId,
+                                                             String role,
+                                                             Long sessionId,
+                                                             UpdateExamSessionRequest request) {
+        log.debug("Updating exam session={} by creator={}", sessionId, creatorId);
 
         ExamSession examSession = "TEACHER".equals(role)
-                ? getOwnedAssignedExamSession(userId, sessionId)
+                ? getOwnedAssignedExamSession(creatorId, sessionId)
                 : getExamSession(sessionId);
 
-        Exam exam = examSession.getExam();
-        GroupDetails groupDetails = groupClient.getGroupById(examSession.getGroupId(), userId, role);
-        List<ExamSessionLanguage> examSessionLanguages =
-                examSessionLanguageRepository.findAllBySessionIdWithLanguages(sessionId);
+        ensureSessionUpdatable(examSession);
 
-        log.debug("Fetched exam session={} for user={} role={}", sessionId, userId, role);
-        return toTeacherExamSessionDetailsResponse(examSession, exam, examSessionLanguages, groupDetails);
+        Exam exam = examSession.getExam();
+
+        if (!Boolean.TRUE.equals(exam.getPublishReady())) {
+            throw new BadRequestException("EXAM_NOT_PUBLISH_READY",
+                    "Exam must be publish-ready before updating a session");
+        }
+
+        if (OffsetDateTime.now().isAfter(request.getStartsAt())) {
+            throw new BadRequestException("INVALID_TIME", "You can't set a session start time in the past");
+        }
+
+        if (!request.getStartsAt().isBefore(request.getEndsAt())) {
+            throw new BadRequestException("INVALID_TIME_WINDOW", "Start time must be before end time");
+        }
+
+        if (examSessionRepository.existsOverlappingSessionExcluding(
+                request.getGroupId(),
+                request.getStartsAt(),
+                request.getEndsAt(),
+                sessionId,
+                ACTIVE_SESSION_STATUSES)) {
+            throw new BadRequestException("SESSION_TIME_CONFLICT",
+                    "There is another active session for this group at that time interval");
+        }
+
+        GroupDetails groupDetails = groupClient.getGroupById(request.getGroupId(), creatorId, role);
+
+        TeacherExamSessionDetailsResponse response = transactionTemplate.execute(status ->
+                persistUpdatedExamSession(examSession, request, groupDetails, exam));
+
+        log.info("Exam session={} updated by creator={}", sessionId, creatorId);
+        return response;
     }
 
+
+    private TeacherExamSessionDetailsResponse persistUpdatedExamSession(ExamSession examSession,
+                                                                        UpdateExamSessionRequest request,
+                                                                        GroupDetails groupDetails,
+                                                                        Exam exam) {
+
+        examSession.setGroupId(request.getGroupId());
+        examSession.setExamSessionTitle(request.getExamSessionTitle());
+        examSession.setStartsAt(request.getStartsAt());
+        examSession.setEndsAt(request.getEndsAt());
+
+        ExamSession updatedSession = examSessionRepository.save(examSession);
+        List<ExamSessionLanguage> examSessionLanguages = examSessionLanguageRepository.findAllBySessionIdWithLanguages(updatedSession.getExamSessionId());
+
+        return toTeacherExamSessionDetailsResponse(updatedSession, exam, examSessionLanguages, groupDetails);
+    }
+
+
+    @Transactional
+    public void addSessionProgrammingLanguage(UUID creatorId, String role,
+                                       Long sessionId, Integer languageId) {
+
+        log.debug("Adding language={} to exam session={}", languageId, sessionId);
+
+        ExamSession examSession = "TEACHER".equals(role)
+                ? getOwnedAssignedExamSession(creatorId, sessionId)
+                : getExamSession(sessionId);
+
+        ensureSessionUpdatable(examSession);
+
+
+        if (!Boolean.TRUE.equals(examSession.getExam().getPublishReady())) {
+            throw new BadRequestException("EXAM_NOT_PUBLISH_READY",
+                    "Exam must be publish-ready before updating a session");
+        }
+
+        if (examSessionLanguageRepository.existsById(new ExamSessionLanguageId(sessionId, languageId))) {
+            throw new BadRequestException(
+                    "LANGUAGE_ALREADY_EXISTS",
+                    "Session already has this language"
+            );
+        }
+
+        ProgrammingLanguage newProgrammingLanguage = programmingLanguageRepository
+                .findByJudge0LanguageIdAndEnabledTrue(languageId)
+                .orElseThrow(() -> new NotFoundException(
+                        "LANGUAGE_NOT_FOUND",
+                        "Language with id: " + languageId + " not found")
+                );
+
+
+        ExamSessionLanguage newExamSessionLanguage = new ExamSessionLanguage(
+                new ExamSessionLanguageId(sessionId, languageId),
+                examSession,
+                newProgrammingLanguage
+        );
+
+        examSessionLanguageRepository.save(newExamSessionLanguage);
+
+        log.info("Added language={} to exam session={}", languageId, sessionId);
+    }
+
+
+    @Transactional
+    public void removeSessionProgrammingLanguage(UUID creatorId, String role, Long sessionId, Integer languageId) {
+
+        log.debug("Removing language={} from exam session={}", languageId, sessionId);
+
+        ExamSession examSession = "TEACHER".equals(role)
+                ? getOwnedAssignedExamSession(creatorId, sessionId)
+                : getExamSession(sessionId);
+
+        ensureSessionUpdatable(examSession);
+
+
+        if (!Boolean.TRUE.equals(examSession.getExam().getPublishReady())) {
+            throw new BadRequestException("EXAM_NOT_PUBLISH_READY",
+                    "Exam must be publish-ready before updating a session");
+        }
+
+        ExamSessionLanguage examSessionLanguage = examSessionLanguageRepository.findById(new ExamSessionLanguageId(sessionId, languageId))
+                .orElseThrow(() -> new NotFoundException(
+                        "EXAM_SESSION_LANGUAGE_NOT_FOUND",
+                        "Language with id: " + languageId + " not found in this exam session"
+                ));
+
+        if (examSessionLanguageRepository.countBySession_ExamSessionId(sessionId) <= 1) {
+            throw new BadRequestException("LAST_LANGUAGE",
+                    "Session must have at least one programming language");
+        }
+
+        examSessionLanguageRepository.delete(examSessionLanguage);
+        log.info("Removed language={} from exam session={}", languageId, sessionId);
+
+    }
 
     //Service internal methods
     @Transactional
@@ -346,7 +490,7 @@ public class ExamSessionService {
         return examSession;
     }
 
-    private void ensureSessionRulesUpdatable(ExamSession examSession) {
+    private void ensureSessionUpdatable(ExamSession examSession) {
         SessionStatus status = examSession.getStatus();
         OffsetDateTime now = OffsetDateTime.now();
 

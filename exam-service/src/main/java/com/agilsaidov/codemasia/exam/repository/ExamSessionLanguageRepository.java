@@ -18,4 +18,6 @@ public interface ExamSessionLanguageRepository extends JpaRepository<ExamSession
             WHERE esl.session.examSessionId = :examSessionId
         """)
     List<ExamSessionLanguage> findAllBySessionIdWithLanguages(@Param("examSessionId") Long examSessionId);
+
+    int countBySession_ExamSessionId(Long sessionId);
 }
